@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "AWAKEN",
+    "slug": "awaken",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "scheme": "awaken",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#02040A",
+    "description": "AWAKEN — a self-improvement RPG. Daily quests, 66-day habits, workouts, focus dungeons and weekly bosses.",
+    "ios": {
+      "bundleIdentifier": "com.anmayvaa.awaken",
+      "supportsTablet": true,
+      "icon": "./assets/images/icon.png",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.anmayvaa.awaken",
+      "adaptiveIcon": {
+        "backgroundColor": "#02040A",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "single",
+      "bundler": "metro",
+      "favicon": "./assets/images/favicon.png",
+      "name": "AWAKEN",
+      "shortName": "AWAKEN",
+      "themeColor": "#02040A",
+      "backgroundColor": "#02040A"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#02040A",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160
+        }
+      ],
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#3CC8FF"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false,
+      "reactCompiler": true
+    }
+  }
+}

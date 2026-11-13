@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><defs>
+  <radialGradient id="bg" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#0D2E5C"/><stop offset="0.55" stop-color="#050B18"/><stop offset="1" stop-color="#02040A"/></radialGradient>
+  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E4F9FF"/><stop offset="1" stop-color="#3CC8FF"/></linearGradient>
+  <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0V64" fill="none" stroke="#3CC8FF" stroke-opacity="0.07" stroke-width="2"/></pattern>
+</defs><rect width="1024" height="1024" fill="url(#bg)"/><rect width="1024" height="1024" fill="url(#grid)"/><g transform="translate(512 512) scale(0.92) translate(-512 -512)" filter="url(#glow)">
+    <polygon points="512.0,182.0 797.8,347.0 797.8,677.0 512.0,842.0 226.2,677.0 226.2,347.0" fill="none" stroke="#3CC8FF" stroke-width="20" stroke-linejoin="round"/>
+    <polygon points="512.0,226.0 759.7,369.0 759.7,655.0 512.0,798.0 264.3,655.0 264.3,369.0" fill="rgba(60,200,255,0.06)" stroke="#3CC8FF" stroke-opacity="0.4" stroke-width="5"/>
+    <path d="M 340 660 L 512 368 L 684 660" fill="none" stroke="url(#g)" stroke-width="56" stroke-linejoin="miter" stroke-linecap="square"/>
+    <polygon points="512,548 552,590 512,632 472,590" fill="url(#g)"/>
+    <circle cx="512.0" cy="150.0" r="9" fill="#3CC8FF"/><circle cx="825.5" cy="331.0" r="9" fill="#3CC8FF"/><circle cx="825.5" cy="693.0" r="9" fill="#3CC8FF"/><circle cx="512.0" cy="874.0" r="9" fill="#3CC8FF"/><circle cx="198.5" cy="693.0" r="9" fill="#3CC8FF"/><circle cx="198.5" cy="331.0" r="9" fill="#3CC8FF"/>
+  </g></svg>
