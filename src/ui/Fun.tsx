@@ -19,6 +19,8 @@ import {
   weeklyReward,
 } from '@/game/fun';
 import type { GameState } from '@/game/types';
+import { cloudEnabled } from '@/lib/supabase';
+import { useAuth } from '@/lib/sync';
 import { systemConfirm } from '@/store/alerts';
 import { actions, useGame } from '@/store/game';
 
@@ -39,7 +41,7 @@ function useTicker(ms: number) {
 
 type NextAct = { icon: string; color: string; title: string; sub: string; cta: string; run: () => void };
 
-function nextAction(g: GameState, now: number, openHatch: () => void, openCrate: () => void): NextAct {
+function nextAction(g: GameState, now: number, openHatch: () => void, openCrate: () => void, signedIn: boolean): NextAct {
   const t = g.board.date;
   const u = g.fun.urgent.quest;
   if (!g.fun.companion.species && g.player.level >= 2)
@@ -47,6 +49,8 @@ function nextAction(g: GameState, now: number, openHatch: () => void, openCrate:
   if (u && u.status === 'open' && u.expiresAt > now)
     return { icon: 'alarm-light', color: C.orange, title: `Urgent: ${u.title}`, sub: `${u.criteria} · ${formatDuration(u.expiresAt - now)} left`, cta: 'Done', run: () => confirmUrgent(g) };
   if (!crateDay(g, t).claimed) return { icon: 'treasure-chest', color: C.gold, title: 'Supply crate ready', sub: `Day ${crateDay(g, t).day} of 7 — free loot`, cta: 'Open', run: openCrate };
+  if (cloudEnabled && !signedIn && g.player.level >= 2)
+    return { icon: 'cloud-upload', color: C.cyan, title: 'Back up your progress', sub: 'Create a free account so your save syncs to every device', cta: 'Sign up', run: () => router.push('/settings') };
   if (isPenaltyActive(g)) return { icon: 'skull', color: C.red, title: 'Clear the Penalty Quest', sub: 'XP is halved until you do', cta: 'Go', run: () => router.navigate('/quests') };
   if (!g.daily.completed) {
     const d = g.daily.tasks.filter((x) => x.progress >= x.target).length;
@@ -70,7 +74,8 @@ export function NextActionCard() {
   const now = useTicker(1000);
   const [hatch, setHatch] = useState(false);
   const [crate, setCrate] = useState(false);
-  const a = nextAction(g, now, () => setHatch(true), () => setCrate(true));
+  const signedIn = useAuth((s) => !!s.session);
+  const a = nextAction(g, now, () => setHatch(true), () => setCrate(true), signedIn);
   return (
     <>
       <Pressable onPress={a.run} style={({ pressed }) => [styles.next, { borderColor: withAlpha(a.color, 0.7), backgroundColor: withAlpha(a.color, pressed ? 0.18 : 0.1) }, glow(a.color, 14, 0.35)]}>
