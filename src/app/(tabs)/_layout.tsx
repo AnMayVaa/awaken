@@ -18,7 +18,7 @@ export default function TabLayout() {
       <Tabs.Screen name="quests" options={{ title: 'Quests' }} />
       <Tabs.Screen name="habits" options={{ title: '66 Days' }} />
       <Tabs.Screen name="train" options={{ title: 'Train' }} />
-      <Tabs.Screen name="dungeon" options={{ title: 'Dungeon' }} />
+      <Tabs.Screen name="life" options={{ title: 'Life' }} />
     </Tabs>
   );
 }

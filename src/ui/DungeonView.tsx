@@ -7,10 +7,10 @@ import { formatDuration, formatHM } from '@/game/date';
 import type { Rank } from '@/game/types';
 import { systemConfirm } from '@/store/alerts';
 import { actions, useGame } from '@/store/game';
-import { Btn, Icon, Input, Panel, Pill, RankBadge, Row, Txt } from '@/ui/kit';
-import { Ring } from '@/ui/Ring';
-import { Columns, Screen, useLayout } from '@/ui/Screen';
-import { C, F, textGlow, withAlpha } from '@/ui/theme';
+import { Btn, Icon, Input, Panel, Pill, RankBadge, Row, Txt } from './kit';
+import { Ring } from './Ring';
+import { Columns, useLayout } from './Screen';
+import { C, F, textGlow, withAlpha } from './theme';
 
 function ActiveDungeon() {
   useKeepAwake();
@@ -69,7 +69,7 @@ function ActiveDungeon() {
   );
 }
 
-export default function DungeonScreen() {
+export function DungeonView() {
   const g = useGame((s) => s.game);
   const [sel, setSel] = useState<Rank>('D');
   const [label, setLabel] = useState('');
@@ -169,7 +169,7 @@ export default function DungeonScreen() {
   );
 
   return (
-    <Screen title="DUNGEON" subtitle="Focus gates" tint={g.dungeon ? RANK_COLORS[g.dungeon.rank] : undefined}>
+    <>
       {g.dungeon ? (
         <Columns>{[<ActiveDungeon key="a" />, history]}</Columns>
       ) : (
@@ -183,7 +183,7 @@ export default function DungeonScreen() {
           ]}
         </Columns>
       )}
-    </Screen>
+    </>
   );
 }
 

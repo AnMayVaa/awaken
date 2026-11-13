@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
 
 import { initNotifications, rescheduleNotifications } from '@/lib/notifications';
+import { readTodaySteps } from '@/lib/steps';
 import { startSync } from '@/lib/sync';
 import { actions, game, useGame } from '@/store/game';
 
@@ -13,11 +14,22 @@ export function GameClock() {
     initNotifications().then(() => rescheduleNotifications(game()));
 
     const iv = setInterval(() => actions.tick(), 10000);
+    const syncSteps = () => {
+      if (!game().onboarded) return;
+      readTodaySteps().then((n) => {
+        if (n !== null) actions.setSteps(n);
+      });
+    };
+    syncSteps();
+    const stepIv = setInterval(syncSteps, 5 * 60000);
 
     const sub = AppState.addEventListener('change', (st) => {
       if (st === 'active' || st === 'background' || st === 'inactive') {
         if (st !== 'inactive') actions.appState(st);
-        if (st === 'active') actions.tick();
+        if (st === 'active') {
+          actions.tick();
+          syncSteps();
+        }
         if (st === 'background') rescheduleNotifications(game());
       }
     });
@@ -45,6 +57,7 @@ export function GameClock() {
 
     return () => {
       clearInterval(iv);
+      clearInterval(stepIv);
       sub.remove();
       unsub();
       if (t) clearTimeout(t);

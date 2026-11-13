@@ -13,9 +13,9 @@ import { C, F, glow, withAlpha } from './theme';
 export const TAB_META: Record<string, { label: string; icon: string }> = {
   index: { label: 'Status', icon: 'shield-account' },
   quests: { label: 'Quests', icon: 'sword' },
-  habits: { label: '66 Days', icon: 'calendar-check' },
+  habits: { label: 'Habits', icon: 'calendar-check' },
   train: { label: 'Train', icon: 'dumbbell' },
-  dungeon: { label: 'Dungeon', icon: 'gate' },
+  life: { label: 'Life', icon: 'chart-donut' },
 };
 
 export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: BottomTabBarProps) {
@@ -23,11 +23,12 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
   const penalty = useGame((s) => !!s.game.penalty);
   const dailyDone = useGame((s) => s.game.daily.completed);
   const dungeon = useGame((s) => !!s.game.dungeon);
+  const checkedIn = useGame((s) => !!s.game.checkins[s.game.board.date]?.savedAt);
 
   const items = state.routes.map((route, index) => {
     const meta = TAB_META[route.name] ?? { label: descriptors[route.key]?.options.title ?? route.name, icon: 'circle' };
     const focused = index === state.index;
-    const badge = route.name === 'quests' ? (penalty ? C.red : !dailyDone ? C.gold : null) : route.name === 'dungeon' && dungeon ? C.green : null;
+    const badge = route.name === 'quests' ? (penalty ? C.red : !dailyDone ? C.gold : null) : route.name === 'train' && dungeon ? C.green : route.name === 'life' && !checkedIn ? C.gold : null;
     const onPress = () => {
       tap();
       const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });

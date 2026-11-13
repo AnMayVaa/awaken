@@ -12,15 +12,17 @@ iPhone · Android · Web — one codebase (Expo / React Native)
 
 <p align="center">
   <img src="docs/screenshots/status.jpg" width="200" />
-  <img src="docs/screenshots/quests.jpg" width="200" />
-  <img src="docs/screenshots/habits.jpg" width="200" />
-  <img src="docs/screenshots/levelup.jpg" width="200" />
+  <img src="docs/screenshots/sidequests.jpg" width="200" />
+  <img src="docs/screenshots/breakfree.jpg" width="200" />
+  <img src="docs/screenshots/sos.jpg" width="200" />
 </p>
 <p align="center">
-  <img src="docs/screenshots/dungeon.jpg" width="200" />
-  <img src="docs/screenshots/guild.jpg" width="200" />
-  <img src="docs/screenshots/desktop.jpg" width="412" />
+  <img src="docs/screenshots/lifewheel.jpg" width="200" />
+  <img src="docs/screenshots/mainquest.jpg" width="200" />
+  <img src="docs/screenshots/crate.jpg" width="200" />
+  <img src="docs/screenshots/hatch.jpg" width="200" />
 </p>
+<p align="center"><img src="docs/screenshots/desktop.jpg" width="820" /></p>
 
 ---
 
@@ -37,7 +39,8 @@ Both are rebuilt automatically by GitHub Actions on every push to `main`.
 
 ```bash
 npm install
-npx expo start --tunnel   # scan the QR code with the iPhone Camera
+npx expo start            # same Wi-Fi: scan the QR code with the iPhone Camera
+# different network? npx expo login  (free account), then: npx expo start --tunnel
 ```
 
 > A standalone App Store / TestFlight build needs an Apple Developer account. With one: `npx eas-cli build -p ios --profile preview`.
@@ -46,21 +49,26 @@ npx expo start --tunnel   # scan the QR code with the iPhone Camera
 
 ## ⚔️ Features
 
+**Your whole life is the game: 10 areas.** Fitness · Health & Sleep · Mind · Learning · Career · Money · Relationships · Purpose · Home · Digital Balance. There are 7 stats: STR, AGI, VIT, INT, SEN, CHA (charisma) and WIL (willpower).
+
 | | |
 | --- | --- |
-| **Status window** | Level, E → S hunter rank, title, class, XP, HP, gold, combat power. Stats **STR / AGI / VIT / INT / SEN** grow from what you do, plus ability points to assign. |
-| **Daily Quest** | Auto-generated training quest ("Body Forging") that scales with your level and difficulty (Casual / Hunter / Nightmare). Choose 1–5 exercises. |
-| **Penalty Zone** | Miss the Daily Quest → HP damage, a mandatory Penalty Quest and halved XP until you clear it. Reach 0 HP and you lose XP. |
-| **66-Day Habits** | Build or quit a habit. 66-cell grid, streak resets to Day 1 on a miss — unless a **Streak Shield** saves you. Finish all 66 days to *forge* the habit. |
-| **Training** | 14 exercises (strength, cardio, core, mind). Every log gives XP, trains a stat, counts toward the Daily Quest and damages the boss. |
-| **Dungeons** | Focus timer from E-Rank (15 min) to S-Rank (120 min). Strict mode: leave the app for more than 15 s and the dungeon collapses. Keeps the screen awake. |
-| **Weekly Boss** | A new boss every Monday. Every XP you earn deals 1 damage. Beat it by Sunday midnight for big XP, gold and loot. |
-| **Shop & rewards** | Spend gold on HP Potions, Streak Shields, Penalty Passes, XP Elixirs (×2 XP) — or on **your own real-life rewards** ("1 hour of gaming = 300 G"). |
-| **Guild** | Recruit AI hunters (Rookie → Elite) who level up every day. Leaderboard + activity feed. |
-| **Trophies & titles** | 26 achievements, equippable titles. |
-| **System alerts** | `[SYSTEM]` popups for level-ups, rank-ups, penalties and boss kills. On phones: morning Daily Quest alert, evening penalty warning, dungeon and boss notifications. |
-| **Cloud sync** | Email + password accounts (Supabase). Local-first — works fully offline, syncs when signed in. |
-| **Any screen size** | Phone, tablet and desktop layouts (side navigation + two columns on wide screens). |
+| **Side Quests (adaptive)** | A Quest Director picks 2–6 quests a day from a **341-quest library**. It uses your focus areas, Life Wheel and yesterday's data (sleep, screen time, steps, mood). Difficulty adapts per area to keep you near **80% success**. Every quest has a concrete *Done when* criterion. Some are auto-verified from steps, workouts, focus time and check-ins. |
+| **AI quests (Gemini)** | One tap asks Gemini (through your private Supabase function) for personal quests — "exam on Friday", "feeling lonely"… Sensitive data stays on the device. |
+| **Main Quests & Campaigns** | Long-term goals with milestones, WOOP plans and tracked numbers. There are 12 ready-made campaigns: Couch to 5K, Sleep Reset, Emergency Fund, Reconnect 30, Digital Detox 30, Career Launch… |
+| **Break Free (recovery mode)** | Quit porn, doom-scrolling, gaming, sugar, smoking, alcohol, gambling or procrastination. A clean-time streak resets on a slip, but **total clean days are kept** and a slip costs no HP. **Urge SOS** walks you through breathing, your why, your plan and a replacement action. A trigger log shows your riskiest times, and milestones come at 1 → 365 days. |
+| **Life tab — real progress** | 30-second daily check-in (mood, energy, sleep, screen time, steps), **Life Wheel** radar, **WHO-5 wellbeing** (a validated scale), trends, a 12-week activity heatmap and weekly reviews. The **Life Score** blends wellbeing, satisfaction and consistency. |
+| **Phone data** | Steps are read automatically from the iPhone's motion sensor (works in Expo Go). Screen time and sleep are entered in the check-in. |
+| **Daily Quest & Penalty Zone** | A scaling training quest. Miss it → HP damage + a Penalty Quest. |
+| **66-day habits** | Habit grid with Streak Shields (missing one day doesn't break habit formation). |
+| **Training & Dungeons** | 14 exercises that raise stats. Focus dungeons last 15–120 minutes, and strict mode collapses the dungeon if you leave the app. |
+| **Weekly boss · Guild bots · Shop** | Every XP damages the boss. AI rivals level up daily. Spend gold on items or your own real-life rewards. |
+
+### Gimmicks (all optional, none punishing)
+
+**Next Action** card (always tells you the one thing to do now) · **Daily Supply Crate** with a 7-day login calendar · **Today's Buff** (+25% XP in one area) · **Combos** up to ×1.25 · **Critical clears** ×2 · **Loot drops** · **Urgent Quests** (60-minute bonus quests, no penalty if missed) · **Weekly Challenges** · **Companion** that hatches and evolves as you level (owl, cat, hound, turtle, penguin, unicorn) · Lucky Charm & Reroll Token items · streak flames · particle bursts on level-up · shareable **Hunter License** · tip of the day · 46 achievements & titles.
+
+📚 **Why it's built this way:** [docs/RESEARCH.md](docs/RESEARCH.md) — evidence and sources for every system.
 
 ---
 
@@ -95,6 +103,14 @@ scripts/pwa.js        turns the web export into an installable PWA
 3. Copy **Project URL** and the **publishable (anon) key** from *Project Settings → API*.
 4. Local: copy `.env.example` to `.env` and fill both values.
 5. Builds: in GitHub → *Settings → Secrets and variables → Actions → **Variables***, add `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_KEY`, then re-run the workflows.
+
+### AI quests (optional, free tier)
+
+1. Get a Gemini API key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+2. Supabase → **Edge Functions → Secrets**: add `GEMINI_API_KEY` (optional: `GEMINI_MODEL`, `AI_DAILY_LIMIT`).
+3. Supabase → **Edge Functions → Deploy a new function** named `ai-quests`, and paste [`supabase/functions/ai-quests/index.ts`](supabase/functions/ai-quests/index.ts). The CLI alternative is `supabase functions deploy ai-quests`.
+4. Make sure you ran the latest `supabase/schema.sql` (it adds the `ai_requests` table used for the daily limit).
+5. In the app: sign in → Quests → Side Quests → **AI quests**.
 
 The publishable key is meant to be public; every row is protected by RLS so players can only read and write their own save. Without these values the app simply runs offline.
 

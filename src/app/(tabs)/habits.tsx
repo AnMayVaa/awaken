@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 
@@ -8,6 +9,7 @@ import type { Habit, StatKey } from '@/game/types';
 import { systemConfirm } from '@/store/alerts';
 import { actions, useGame } from '@/store/game';
 import { Btn, Chip, Empty, Icon, Input, Panel, Pill, Row, Segment, Txt } from '@/ui/kit';
+import { RecoveryView } from '@/ui/RecoveryView';
 import { Screen, useLayout } from '@/ui/Screen';
 import { SystemModal } from '@/ui/SystemModal';
 import { C, F, glow, textGlow, withAlpha } from '@/ui/theme';
@@ -128,6 +130,37 @@ function HabitCard({ h, today }: { h: Habit; today: string }) {
 const emptyForm = { name: '', icon: 'water', stat: 'VIT' as StatKey, kind: 'build' as 'build' | 'quit' };
 
 export default function HabitsScreen() {
+  const params = useLocalSearchParams<{ view?: string }>();
+  const [view, setView] = useState<'build' | 'free'>(params.view === 'free' ? 'free' : 'build');
+  const [seen, setSeen] = useState(params.view);
+  if (params.view !== seen) {
+    setSeen(params.view);
+    if (params.view === 'free' || params.view === 'build') setView(params.view);
+  }
+  const switcher = (
+    <View style={{ marginBottom: 14 }}>
+      <Segment
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'build', label: 'Build · 66 days' },
+          { value: 'free', label: 'Break free' },
+        ]}
+      />
+    </View>
+  );
+  if (view === 'free') {
+    return (
+      <Screen title="BREAK FREE" subtitle="Recovery mode" tint={C.green}>
+        {switcher}
+        <RecoveryView />
+      </Screen>
+    );
+  }
+  return <BuildView switcher={switcher} />;
+}
+
+function BuildView({ switcher }: { switcher: React.ReactNode }) {
   const g = useGame((s) => s.game);
   const [form, setForm] = useState<typeof emptyForm | null>(null);
   const { width } = useLayout();
@@ -146,6 +179,7 @@ export default function HabitsScreen() {
 
   return (
     <Screen title="66-DAY CHALLENGE" subtitle="Habit forging" right={<Btn size="sm" icon="plus" label="Habit" onPress={() => setForm({ ...emptyForm })} testID="new-habit" />}>
+      {switcher}
       <Panel title="How it works" icon="information-outline" color={C.blue}>
         <Txt v="small">
           Research on habit formation found it takes about 66 days on average for a new behaviour to feel automatic. Check in every day. Miss one and

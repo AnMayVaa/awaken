@@ -1,9 +1,11 @@
+import { useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { EXERCISE_MAP, EXERCISES, STAT_META, type ExerciseCategory } from '@/game/constants';
+import { EXERCISE_MAP, EXERCISES, RANK_COLORS, STAT_META, type ExerciseCategory } from '@/game/constants';
 import { systemConfirm } from '@/store/alerts';
 import { actions, useGame } from '@/store/game';
+import { DungeonView } from '@/ui/DungeonView';
 import { Empty, Icon, Panel, Row, Segment, Txt } from '@/ui/kit';
 import { LogModal } from '@/ui/LogModal';
 import { Screen } from '@/ui/Screen';
@@ -14,6 +16,39 @@ type Cat = 'all' | ExerciseCategory;
 const fmt = (v: number) => (Number.isInteger(v) ? v.toLocaleString() : v.toFixed(1));
 
 export default function TrainScreen() {
+  const params = useLocalSearchParams<{ view?: string }>();
+  const [view, setView] = useState<'workout' | 'dungeon'>(params.view === 'dungeon' ? 'dungeon' : 'workout');
+  const [seenParam, setSeenParam] = useState(params.view);
+  if (params.view !== seenParam) {
+    setSeenParam(params.view);
+    if (params.view === 'dungeon' || params.view === 'workout') setView(params.view);
+  }
+  const g = useGame((s) => s.game);
+  const dungeonTint = g.dungeon ? RANK_COLORS[g.dungeon.rank] : undefined;
+  const switcher = (
+    <View style={{ marginBottom: 14 }}>
+      <Segment
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'workout', label: 'Workout' },
+          { value: 'dungeon', label: g.dungeon ? 'Dungeon •' : 'Dungeon' },
+        ]}
+      />
+    </View>
+  );
+  if (view === 'dungeon') {
+    return (
+      <Screen title="DUNGEON" subtitle="Focus gates" tint={dungeonTint}>
+        {switcher}
+        <DungeonView />
+      </Screen>
+    );
+  }
+  return <WorkoutView switcher={switcher} />;
+}
+
+function WorkoutView({ switcher }: { switcher: React.ReactNode }) {
   const g = useGame((s) => s.game);
   const [cat, setCat] = useState<Cat>('all');
   const [logEx, setLogEx] = useState<string | null>(null);
@@ -31,6 +66,7 @@ export default function TrainScreen() {
 
   return (
     <Screen title="TRAINING" subtitle="Workout log">
+      {switcher}
       <Panel title="Today" icon="lightning-bolt" right={<Txt v="num" color={C.cyanHi}>+{todayXp} XP</Txt>}>
         <Txt v="small">Every rep trains a stat and counts toward your Daily Quest and the weekly boss.</Txt>
       </Panel>

@@ -2,9 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AREAS, type AreaId } from '@/game/areas';
 import { DAILY_ELIGIBLE, DEFAULT_DAILY, DIFFICULTY_META, EXERCISE_MAP } from '@/game/constants';
+import { RECOVERY_CATEGORIES } from '@/game/recovery';
 import { dailyTarget } from '@/game/engine';
-import type { Difficulty } from '@/game/types';
+import type { Difficulty, RecoveryCategory } from '@/game/types';
 import { notificationsSupported, requestNotificationPermission } from '@/lib/notifications';
 import { cloudEnabled } from '@/lib/supabase';
 import { useAuth } from '@/lib/sync';
@@ -13,7 +15,7 @@ import { actions } from '@/store/game';
 import { AuthForm } from './AuthForm';
 import { Background } from './Background';
 import { Btn, Chip, Icon, Input, Panel, Row, Txt } from './kit';
-import { C, F, textGlow, withAlpha } from './theme';
+import { C, F, textGlow, withAlpha, NATIVE_DRIVER } from './theme';
 
 function Typewriter({ text, delay = 0, speed = 28, onDone, style }: { text: string; delay?: number; speed?: number; onDone?: () => void; style?: object }) {
   const [n, setN] = useState(0);
@@ -21,29 +23,25 @@ function Typewriter({ text, delay = 0, speed = 28, onDone, style }: { text: stri
   useEffect(() => {
     let iv: ReturnType<typeof setInterval> | undefined;
     const to = setTimeout(() => {
-      iv = setInterval(() => {
-        setN((x) => {
-          if (x >= text.length) {
-            if (iv) clearInterval(iv);
-            if (!done.current) {
-              done.current = true;
-              onDone?.();
-            }
-            return x;
-          }
-          return x + 1;
-        });
-      }, speed);
+      iv = setInterval(() => setN((x) => (x >= text.length ? x : x + 1)), speed);
     }, delay);
     return () => {
       clearTimeout(to);
       if (iv) clearInterval(iv);
     };
-  }, [text, delay, speed, onDone]);
+  }, [text, delay, speed]);
+  const finished = n >= text.length;
+  // notify the parent after render — never inside a state updater
+  useEffect(() => {
+    if (finished && !done.current) {
+      done.current = true;
+      onDone?.();
+    }
+  }, [finished, onDone]);
   return (
     <Txt v="body" style={[{ fontSize: 18, lineHeight: 26 }, style]} center>
       {text.slice(0, n)}
-      {n < text.length ? <Txt color={C.cyan}>▍</Txt> : null}
+      {!finished ? <Txt color={C.cyan}>▍</Txt> : null}
     </Txt>
   );
 }
@@ -58,20 +56,22 @@ export function Onboarding() {
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
   const [daily, setDaily] = useState<string[]>([...DEFAULT_DAILY]);
   const [showAuth, setShowAuth] = useState(false);
+  const [focus, setFocus] = useState<AreaId[]>(['fitness', 'mind', 'learning']);
+  const [quit, setQuit] = useState<RecoveryCategory[]>([]);
   const session = useAuth((s) => s.session);
   const fade = useState(() => new Animated.Value(0))[0];
   const pulse = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
     fade.setValue(0);
-    Animated.timing(fade, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+    Animated.timing(fade, { toValue: 1, duration: 350, useNativeDriver: NATIVE_DRIVER }).start();
   }, [step, fade]);
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1400, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 1400, useNativeDriver: NATIVE_DRIVER }),
+        Animated.timing(pulse, { toValue: 0, duration: 1400, useNativeDriver: NATIVE_DRIVER }),
       ]),
     );
     loop.start();
@@ -88,7 +88,7 @@ export function Onboarding() {
         await requestNotificationPermission();
       } catch {}
     }
-    actions.onboard(name || 'Player', { difficulty, dailyExercises: daily });
+    actions.onboard(name || 'Player', { difficulty, dailyExercises: daily }, { focusAreas: focus, recovery: quit });
   };
 
   return (
@@ -226,16 +226,64 @@ export function Onboarding() {
           ) : null}
 
           {step === 4 ? (
+            <Panel title="Choose your focus" icon="target">
+              <Txt v="small" style={{ marginBottom: 12 }}>
+                Pick up to 3 life areas to grow first. Side Quests will lean toward them — you can change this any time in the Life tab.
+              </Txt>
+              {AREAS.map((a) => {
+                const on = focus.includes(a.id);
+                return (
+                  <Pressable
+                    key={a.id}
+                    onPress={() => setFocus((f) => (on ? f.filter((x) => x !== a.id) : f.length >= 3 ? f : [...f, a.id]))}
+                    style={[styles.areaRow, { borderColor: withAlpha(a.color, on ? 0.9 : 0.2), backgroundColor: withAlpha(a.color, on ? 0.14 : 0.02) }]}>
+                    <Icon name={a.icon} size={20} color={a.color} />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Txt v="bodyB" color={on ? C.white : C.text}>
+                        {a.name}
+                      </Txt>
+                      <Txt v="tiny">{a.rate}</Txt>
+                    </View>
+                    {on ? <Icon name="check-decagram" color={a.color} /> : null}
+                  </Pressable>
+                );
+              })}
+              <Row style={{ marginTop: 6 }}>
+                <Btn label="Back" kind="ghost" onPress={() => setStep(3)} />
+                <Btn kind="solid" label="Next" flex onPress={() => setStep(5)} disabled={!focus.length} />
+              </Row>
+            </Panel>
+          ) : null}
+
+          {step === 5 ? (
+            <Panel title="Break free (optional)" icon="link-variant-off" color={C.green}>
+              <Txt v="small" style={{ marginBottom: 12 }}>
+                Anything you want to cut down or quit? You’ll get a streak counter, an Urge SOS button and a plan. Recovery mode: a slip never costs HP. This stays private.
+              </Txt>
+              <Row wrap gap={6} style={{ marginBottom: 14 }}>
+                {RECOVERY_CATEGORIES.filter((c) => c.id !== 'custom').map((c) => (
+                  <Chip key={c.id} label={c.name} icon={c.icon} color={c.color} active={quit.includes(c.id)} onPress={() => setQuit((q) => (q.includes(c.id) ? q.filter((x) => x !== c.id) : [...q, c.id]))} />
+                ))}
+              </Row>
+              <Row>
+                <Btn label="Back" kind="ghost" onPress={() => setStep(4)} />
+                <Btn kind="solid" label={quit.length ? 'Next' : 'Skip'} flex onPress={() => setStep(6)} />
+              </Row>
+            </Panel>
+          ) : null}
+
+          {step === 6 ? (
             <Panel title="Contract" icon="file-sign" color={C.gold}>
               <View style={{ gap: 8, marginBottom: 16 }}>
                 <Txt v="body">· Clear the Daily Quest every day to grow.</Txt>
                 <Txt v="body">· Missing it costs HP and issues a Penalty Quest.</Txt>
+                <Txt v="body">· Side Quests across your life adapt to you every day.</Txt>
                 <Txt v="body">· Build habits for 66 days to forge them for life.</Txt>
                 <Txt v="body">· Every XP you earn damages the weekly boss.</Txt>
                 {notificationsSupported ? <Txt v="body">· The System will send you reminders.</Txt> : null}
               </View>
               <Row>
-                <Btn label="Back" kind="ghost" onPress={() => setStep(3)} />
+                <Btn label="Back" kind="ghost" onPress={() => setStep(5)} />
                 <Btn kind="solid" label="I accept" color={C.gold} flex icon="lightning-bolt" onPress={finish} testID="accept" />
               </Row>
             </Panel>
@@ -257,5 +305,6 @@ const styles = StyleSheet.create({
     boxShadow: `0 0 30px ${withAlpha(C.cyan, 0.45)}`,
   },
   card: { borderWidth: 1, borderRadius: 3, padding: 12, marginBottom: 10 },
+  areaRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 3, padding: 10, marginBottom: 6 },
   preview: { borderWidth: 1, borderColor: C.lineDim, borderRadius: 3, padding: 12, backgroundColor: 'rgba(0,0,0,0.25)' },
 });

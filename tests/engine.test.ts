@@ -1,9 +1,14 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import * as E from '../src/game/engine';
-import { addDays, today } from '../src/game/date';
 import { botSnapshot, generateCandidates, botFeed } from '../src/game/bots';
 import type { GameEvent } from '../src/game/types';
+import { QUEST_LIBRARY } from '../src/game/questLibrary';
+import { generateBoard, lifeScore, metricMet } from '../src/game/director';
+import { AREA_IDS } from '../src/game/areas';
+import { CAMPAIGNS } from '../src/game/campaigns';
+import { crateDay, dailyBuff, weeklyChallenges, companionStage } from '../src/game/fun';
+import { addDays, today, weekId } from '../src/game/date';
 
 const t = today();
 let ev: GameEvent[] = [];
@@ -157,3 +162,162 @@ const fresh = () => { const s = E.createInitialState('Tester'); s.onboarded = tr
   console.log('✓ migrate');
 }
 console.log('\nALL ENGINE TESTS PASSED');
+
+// ================= v2 =================
+
+{
+  console.log(`\nQuest library: ${QUEST_LIBRARY.length} quests`);
+  const ids = new Set(QUEST_LIBRARY.map((q) => q.id));
+  assert.equal(ids.size, QUEST_LIBRARY.length, 'unique quest ids');
+  for (const a of AREA_IDS) assert.ok(QUEST_LIBRARY.filter((q) => q.area === a).length >= 15, `area ${a} has 15+ quests`);
+  for (const q of QUEST_LIBRARY) {
+    assert.ok(q.tier >= 1 && q.tier <= 5, 'tier range ' + q.id);
+    assert.ok(!q.title.includes('{n}') && !q.criteria.includes('{n}'), 'placeholder replaced ' + q.id);
+  }
+  console.log('✓ library valid; per area:', AREA_IDS.map((a) => `${a} ${QUEST_LIBRARY.filter((q) => q.area === a).length}`).join(', '));
+}
+
+{
+  const s = fresh(); ev = [];
+  s.profile.focusAreas = ['fitness', 'money', 'relationships'];
+  const board = generateBoard(s, t);
+  assert.equal(board.length, s.profile.questLoad);
+  assert.ok(new Set(board.map((q) => q.area)).size >= 2, 'board spans 2+ areas');
+  s.board = { date: t, quests: board, rerolls: 3 };
+  const q = s.board.quests[0];
+  const tier0 = s.areas[q.area].tier;
+  E.completeSide(s, ev, q.id, 'did it');
+  assert.equal(q.status, 'done');
+  assert.ok(s.areas[q.area].tier > tier0, 'tier rises after completion');
+  assert.equal(s.counters.sideQuests, 1);
+  const q2 = s.board.quests[1];
+  const t2 = s.areas[q2.area].tier;
+  E.skipSide(s, q2.id);
+  assert.ok(s.areas[q2.area].tier < t2 || q2.area === q.area, 'tier drops after skip');
+  assert.ok(E.rerollSide(s, s.board.quests[2].id), 'reroll works');
+  assert.equal(s.board.rerolls, 2);
+  console.log('✓ board:', board.map((b) => `[${b.area}/T${b.tier}] ${b.title}`).join(' | '));
+}
+
+{
+  // rollover expires open quests and builds a new board
+  const s = fresh(); ev = [];
+  const y = addDays(t, -1);
+  s.lastDate = y; s.daily.date = y; s.daily.completed = true;
+  s.board = { date: y, quests: generateBoard(s, y), rerolls: 3 };
+  const before = s.board.quests.length;
+  E.rollover(s, ev);
+  assert.equal(s.board.date, t);
+  assert.ok(s.board.quests.length > 0, 'new board');
+  assert.equal(s.questHistory.filter((h) => h.status === 'expired').length, before, 'old quests expired');
+  console.log('✓ rollover rebuilds side-quest board');
+}
+
+{
+  // metric auto-verification (steps)
+  const s = fresh(); ev = [];
+  s.board = { date: t, quests: [], rerolls: 3 };
+  assert.ok(E.addToBoard(s, 'fitness.walk-n-steps.0'));
+  E.saveCheckin(s, ev, { steps: 6000 }, false);
+  assert.equal(s.board.quests[0].status, 'done', 'auto-completed from steps');
+  assert.ok(metricMet(s, { key: 'steps', op: 'gte', value: 5000 }, t));
+  // workout metric
+  assert.ok(E.addToBoard(s, 'fitness.push-up-session.0'));
+  E.logWorkout(s, ev, 'pushups', 25);
+  assert.equal(s.board.quests[1].status, 'done', 'auto-completed from push-ups');
+  console.log('✓ metric quests auto-verify (steps, workouts)');
+}
+
+{
+  // recovery
+  const s = fresh(); ev = [];
+  E.addRecovery(s, { category: 'social', name: 'Doom-scrolling', why: 'time', plan: 'p', replacements: [], daysClean: 8 });
+  const tr = s.recovery[0];
+  assert.deepEqual(tr.milestonesHit, [1, 3, 7], 'pre-existing milestones not re-rewarded');
+  E.resistUrge(s, ev, tr.id, 'Bored');
+  assert.equal(s.counters.urgesResisted, 1);
+  E.relapse(s, ev, tr.id, 'Late night', 'note', 'new plan');
+  assert.ok(tr.bankedMs >= 8 * 86400000 - 1000, 'clean time banked');
+  assert.equal(tr.milestonesHit.length, 0);
+  assert.equal(tr.plan, 'new plan');
+  const hpBefore = s.player.hp;
+  tr.startedAt = Date.now() - 3.2 * 86400000;
+  E.rollover(s, ev);
+  assert.deepEqual(tr.milestonesHit.sort((a, b) => a - b), [1, 3], 'new milestones rewarded');
+  assert.equal(s.player.hp, hpBefore, 'no HP penalty in recovery mode');
+  console.log('✓ recovery: urges, relapse banking, milestones');
+}
+
+{
+  // campaigns / main quests
+  const s = fresh(); ev = [];
+  assert.ok(E.startCampaign(s, 'sleep'));
+  const mq = s.mainQuests[0];
+  for (const m of mq.milestones) E.toggleMilestone(s, ev, mq.id, m.id);
+  assert.equal(mq.status, 'done');
+  assert.equal(s.counters.mainQuestsDone, 1);
+  assert.equal(CAMPAIGNS.length >= 10, true);
+  console.log('✓ campaign completes; level', s.player.level);
+}
+
+{
+  // wellbeing + wheel + life score
+  const s = fresh(); ev = [];
+  E.saveWellbeing(s, ev, [1, 2, 1, 2, 2]);
+  assert.equal(s.wellbeing[0].score, 32);
+  assert.ok(ev.some((e) => e.tone === 'warning' && e.lines.some((l) => l.includes('1323'))), 'low score support message');
+  E.saveWheel(s, ev, { fitness: 4, health: 6, mind: 5, learning: 7, career: 6, money: 3, relationships: 8, purpose: 5, home: 6, digital: 2 });
+  const ls = lifeScore(s, t);
+  assert.ok(ls.score !== null && ls.score > 0 && ls.score < 100);
+  console.log('✓ life score', ls.score, ls.parts.map((p) => `${p.label}=${p.value}`).join(', '));
+}
+
+{
+  // AI quest sanitising
+  const s = fresh(); ev = [];
+  s.board = { date: t, quests: generateBoard(s, t), rerolls: 3 };
+  const n = E.addAIQuests(s, [
+    { title: 'Call grandma', criteria: 'Talk for 10+ minutes', area: 'relationships', tier: 2, minutes: 15 },
+    { title: 'bad', criteria: 'x', area: 'nope', tier: 9 },
+  ]);
+  assert.equal(n, 1);
+  assert.ok(s.board.quests.some((q) => q.source === 'ai' && q.stat === 'CHA'));
+  console.log('✓ AI quests sanitised');
+}
+console.log('\nALL v2 TESTS PASSED');
+
+// ================= gimmicks =================
+{
+  const s = fresh(); ev = [];
+  assert.ok(E.claimCrate(s, ev), 'crate claim');
+  assert.equal(E.claimCrate(s, ev), false, 'only once per day');
+  s.fun.crate.lastClaim = addDays(t, -1);
+  s.fun.crate.streak = 6;
+  assert.equal(crateDay(s, t).day, 7, 'day 7 rare crate');
+  ev = [];
+  E.claimCrate(s, ev);
+  assert.ok(ev.some((e) => e.title === 'RARE SUPPLY CRATE'));
+  // combos grow across completions
+  s.board = { date: t, quests: generateBoard(s, t), rerolls: 3 };
+  for (const q of s.board.quests) E.completeSide(s, ev, q.id);
+  assert.equal(s.fun.combo.count, s.board.quests.length);
+  assert.ok(s.counters.bestCombo >= 3);
+  // buff is deterministic per day
+  assert.deepEqual(dailyBuff(t, 'x'), dailyBuff(t, 'x'));
+  // weekly challenge claim
+  const wk = weekId(t);
+  const chs = weeklyChallenges(wk, s.player.createdAt);
+  assert.equal(chs.length, 3);
+  // companion
+  E.hatchCompanion(s, ev, 'owl', 'Hoot');
+  assert.equal(s.fun.companion.species, 'owl');
+  assert.equal(companionStage(1).name, 'Egg');
+  assert.equal(companionStage(12).name, 'Adept');
+  // items
+  s.inventory.reroll_token = 1;
+  const r0 = s.board.rerolls;
+  assert.ok(E.consumeItem(s, ev, 'reroll_token'));
+  assert.equal(s.board.rerolls, r0 + 1);
+  console.log('✓ gimmicks: crate, combo, buff, weekly, companion, items · crits so far', s.counters.crits, 'drops', s.counters.drops);
+}
+console.log('\nALL GIMMICK TESTS PASSED');

@@ -3,7 +3,9 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import * as E from '@/game/engine';
-import type { Bot, CustomQuest, CustomReward, GameEvent, GameState, Habit, ItemId, Rank, Settings, StatKey } from '@/game/types';
+import { generateBoard } from '@/game/director';
+import { RECOVERY_MAP } from '@/game/recovery';
+import type { AreaId, Bot, CustomQuest, CustomReward, DailyCheckin, GameEvent, GameState, Habit, ItemId, LifeProfile, MainQuest, Rank, RecoveryCategory, RecoveryTrack, Settings, StatKey, WeeklyReview } from '@/game/types';
 import { setHapticsEnabled } from '@/lib/haptics';
 
 import { useAlerts } from './alerts';
@@ -63,10 +65,16 @@ export const actions = {
   tick: () => act((s, ev) => E.rollover(s, ev)),
   appState: (st: 'active' | 'background' | 'inactive') => act((s, ev) => E.dungeonAppState(s, ev, st)),
 
-  onboard: (name: string, settings: Partial<Settings>) =>
+  onboard: (name: string, settings: Partial<Settings>, extra: { focusAreas?: AreaId[]; recovery?: RecoveryCategory[] } = {}) =>
     act((s, ev) => {
       const fresh = E.createInitialState(name.trim() || 'Player', settings);
       Object.assign(s, fresh, { onboarded: true, syncedUserId: s.syncedUserId });
+      if (extra.focusAreas?.length) s.profile.focusAreas = extra.focusAreas.slice(0, 3);
+      for (const c of extra.recovery ?? []) {
+        const m = RECOVERY_MAP[c];
+        E.addRecovery(s, { category: c, name: m.name, why: '', plan: m.plan, replacements: m.replacements.slice(0, 4) });
+      }
+      s.board = { date: s.board.date, quests: generateBoard(s, s.board.date), rerolls: s.board.rerolls };
       E.log(s, 'The System has chosen you. Welcome, Player.', 'info');
       ev.push({
         tone: 'info',
@@ -114,6 +122,56 @@ export const actions = {
     }),
 
   addBot: (b: Bot) => act((s) => E.addBot(s, b)),
+
+  // v2 — side quests
+  completeSide: (id: string, note?: string) => act((s, ev) => E.completeSide(s, ev, id, note)),
+  skipSide: (id: string) => act((s) => E.skipSide(s, id)),
+  rerollSide: (id: string) => act((s) => E.rerollSide(s, id)),
+  addToBoard: (templateId: string) => act((s) => E.addToBoard(s, templateId)),
+  removeFromBoard: (id: string) => act((s) => E.removeFromBoard(s, id)),
+  addAIQuests: (items: E.AIQuestInput[]) => {
+    let n = 0;
+    act((s) => {
+      n = E.addAIQuests(s, items);
+      return n > 0;
+    });
+    return n;
+  },
+  setProfile: (patch: Partial<LifeProfile>) => act((s) => E.setProfile(s, patch)),
+
+  // main quests
+  addMainQuest: (mq: Omit<MainQuest, 'id' | 'status' | 'createdAt'>) => act((s) => E.addMainQuest(s, mq)),
+  startCampaign: (id: string) => act((s) => E.startCampaign(s, id)),
+  toggleMilestone: (mqId: string, msId: string) => act((s, ev) => E.toggleMilestone(s, ev, mqId, msId)),
+  updateMainQuest: (mqId: string, patch: Partial<MainQuest>) => act((s) => E.updateMainQuest(s, mqId, patch)),
+  completeMainQuest: (mqId: string) => act((s, ev) => E.completeMainQuest(s, ev, mqId)),
+  deleteMainQuest: (mqId: string) => act((s) => E.deleteMainQuest(s, mqId)),
+
+  // recovery
+  addRecovery: (t: Pick<RecoveryTrack, 'category' | 'name' | 'why' | 'plan' | 'replacements'> & { daysClean?: number }) => act((s) => E.addRecovery(s, t)),
+  updateRecovery: (id: string, patch: Partial<Pick<RecoveryTrack, 'name' | 'why' | 'plan' | 'replacements'>>) => act((s) => E.updateRecovery(s, id, patch)),
+  deleteRecovery: (id: string) => act((s) => E.deleteRecovery(s, id)),
+  resistUrge: (id: string, trigger?: string) => act((s, ev) => E.resistUrge(s, ev, id, trigger)),
+  relapse: (id: string, trigger?: string, note?: string, plan?: string) => act((s, ev) => E.relapse(s, ev, id, trigger, note, plan)),
+
+  // gimmicks
+  claimCrate: () => act((s, ev) => E.claimCrate(s, ev)),
+  completeUrgent: () => act((s, ev) => E.completeUrgent(s, ev)),
+  claimWeekly: (id: string) => act((s, ev) => E.claimWeekly(s, ev, id)),
+  hatchCompanion: (species: string, name: string) => act((s, ev) => E.hatchCompanion(s, ev, species, name)),
+  renameCompanion: (name: string) => act((s) => E.renameCompanion(s, name)),
+
+  // life data
+  saveCheckin: (patch: Partial<DailyCheckin>, finalize = true) => act((s, ev) => E.saveCheckin(s, ev, patch, finalize)),
+  setSteps: (steps: number) =>
+    act((s, ev) => {
+      const t = s.board.date;
+      if (s.checkins[t]?.steps === steps) return false;
+      E.saveCheckin(s, ev, { steps, stepsAuto: true }, false);
+    }),
+  saveWellbeing: (answers: number[]) => act((s, ev) => E.saveWellbeing(s, ev, answers)),
+  saveWheel: (ratings: Partial<Record<AreaId, number>>) => act((s, ev) => E.saveWheel(s, ev, ratings)),
+  saveReview: (r: Omit<WeeklyReview, 'date' | 'week'>) => act((s, ev) => E.saveReview(s, ev, r)),
   removeBot: (id: string) => act((s) => E.removeBot(s, id)),
 
   reset: () =>

@@ -273,6 +273,7 @@ export function Chip({
   color = C.cyan,
   icon,
   style,
+  testID,
 }: {
   label: string;
   active?: boolean;
@@ -280,9 +281,11 @@ export function Chip({
   color?: string;
   icon?: string;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }) {
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       onPress={() => {
         tap();

@@ -5,11 +5,15 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ACHIEVEMENT_MAP, ACHIEVEMENTS, TITLES } from '@/game/achievements';
 import { BOSS_MAP, STAT_KEYS, STAT_META } from '@/game/constants';
 import { formatHM, weekEnd } from '@/game/date';
+import { lifeScore } from '@/game/director';
+import { cleanDays } from '@/game/recovery';
+import { streakFlame } from '@/game/fun';
 import { combatPower, isPenaltyActive, maxHp, nextRank, playerClass, rankForLevel, statThreshold, xpToNext } from '@/game/engine';
 import { cloudEnabled } from '@/lib/supabase';
 import { useAuth } from '@/lib/sync';
 import { actions, useGame } from '@/store/game';
 import { Btn, Bar, Icon, Panel, Pill, RankBadge, Row, Stat, Txt } from '@/ui/kit';
+import { CompanionCard, DailyStrip, NextActionCard, shareLicense, UrgentBanner, WeeklyPanel } from '@/ui/Fun';
 import { InstallHint } from '@/ui/InstallHint';
 import { Columns, Screen, useLayout } from '@/ui/Screen';
 import { SystemModal } from '@/ui/SystemModal';
@@ -44,13 +48,25 @@ export default function StatusScreen() {
   const boss = BOSS_MAP[g.boss.bossId];
   const title = p.titleId ? ACHIEVEMENT_MAP[p.titleId]?.title : rank.title;
   const habitsDone = g.habits.filter((h) => h.status === 'active' && h.checks.includes(g.daily.date)).length;
+  const sideDone = g.board.quests.filter((q) => q.status === 'done').length;
+  const ls = lifeScore(g, g.board.date);
+  const bestFree = g.recovery.length ? Math.max(...g.recovery.map((r) => cleanDays(r, now))) : null;
+  const checkedIn = !!g.checkins[g.board.date]?.savedAt;
   const habitsActive = g.habits.filter((h) => h.status === 'active').length;
   const dailyDone = g.daily.tasks.filter((t) => t.progress >= t.target).length;
   const boost = g.xpBoostUntil > now;
   const tileW = width < 380 ? '47%' : '31%';
 
   const player = (
-    <Panel title="Player" icon="account-box" key="player">
+    <Panel
+      title="Player"
+      icon="account-box"
+      key="player"
+      right={
+        <Pressable onPress={() => shareLicense(g)} hitSlop={10} accessibilityLabel="Share hunter license">
+          <Icon name="share-variant" size={18} color={C.textDim} />
+        </Pressable>
+      }>
       <Row gap={14} style={{ alignItems: 'flex-start' }}>
         <RankBadge rank={rank.rank} size={68} />
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -83,7 +99,8 @@ export default function StatusScreen() {
       <View style={styles.statRow}>
         <Stat label="Gold" value={p.gold.toLocaleString()} color={C.gold} icon="hexagon-multiple" />
         <Stat label="Power" value={combatPower(p).toLocaleString()} color={C.cyanHi} icon="flash" />
-        <Stat label="Streak" value={g.counters.dailyStreak} color={C.orange} icon="fire" />
+        <Stat label="Streak" value={g.counters.dailyStreak} color={streakFlame(g.counters.dailyStreak).color} icon="fire" />
+        <Stat label="Life" value={ls.score ?? '—'} color={C.green} icon="star-four-points" />
       </View>
       {nr ? (
         <Txt v="tiny" center style={{ marginTop: 10 }}>
@@ -145,6 +162,14 @@ export default function StatusScreen() {
         </View>
         <Icon name="chevron-right" color={C.muted} />
       </Pressable>
+      <Pressable onPress={() => router.navigate('/quests')} style={styles.todayRow}>
+        <Icon name="map-marker-star" size={22} color={sideDone >= g.board.quests.length && g.board.quests.length ? C.green : C.cyan} />
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Txt v="bodyB">Side Quests</Txt>
+          <Txt v="small">{`${sideDone}/${g.board.quests.length} cleared · adaptive, across your life areas`}</Txt>
+        </View>
+        <Icon name="chevron-right" color={C.muted} />
+      </Pressable>
       <Pressable onPress={() => router.navigate('/habits')} style={styles.todayRow}>
         <Icon name="calendar-check" size={22} color={habitsActive && habitsDone === habitsActive ? C.green : C.cyan} />
         <View style={{ flex: 1, marginLeft: 12 }}>
@@ -153,7 +178,25 @@ export default function StatusScreen() {
         </View>
         <Icon name="chevron-right" color={C.muted} />
       </Pressable>
-      <Pressable onPress={() => router.navigate('/dungeon')} style={[styles.todayRow, { borderBottomWidth: 0 }]}>
+      {bestFree !== null ? (
+        <Pressable onPress={() => router.navigate('/habits?view=free')} style={styles.todayRow}>
+          <Icon name="link-variant-off" size={22} color={C.green} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Txt v="bodyB">Break Free</Txt>
+            <Txt v="small">{`Best current streak: ${bestFree} day${bestFree === 1 ? '' : 's'} · Urge SOS ready`}</Txt>
+          </View>
+          <Icon name="chevron-right" color={C.muted} />
+        </Pressable>
+      ) : null}
+      <Pressable onPress={() => router.navigate('/life')} style={styles.todayRow}>
+        <Icon name="clipboard-pulse" size={22} color={checkedIn ? C.green : C.gold} />
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Txt v="bodyB">Life check-in</Txt>
+          <Txt v="small">{checkedIn ? 'Done — your data is steering tomorrow’s quests' : 'Mood, sleep, screen time, steps · 30 s'}</Txt>
+        </View>
+        <Icon name="chevron-right" color={C.muted} />
+      </Pressable>
+      <Pressable onPress={() => router.navigate('/train?view=dungeon')} style={[styles.todayRow, { borderBottomWidth: 0 }]}>
         <Icon name="gate" size={22} color={g.dungeon ? C.green : C.purple} />
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Txt v="bodyB">Dungeon</Txt>
@@ -248,6 +291,9 @@ export default function StatusScreen() {
         </Row>
       }>
       <InstallHint />
+      <NextActionCard />
+      <DailyStrip />
+      <UrgentBanner />
       {penalty ? (
         <Pressable onPress={() => router.navigate('/quests')}>
           <Panel color={C.red} intensity={1.6} title="Penalty Zone" icon="skull">
@@ -265,7 +311,9 @@ export default function StatusScreen() {
             {stats}
           </View>,
           <View key="r">
+            <CompanionCard />
             {todayPanel}
+            <WeeklyPanel />
             {bossPanel}
             {menu}
             {logPanel}

@@ -68,3 +68,6 @@ export const toneColor: Record<string, string> = {
   boss: C.purple,
   achievement: C.gold,
 };
+
+/** Native animation driver isn't available on web */
+export const NATIVE_DRIVER = Platform.OS !== 'web';

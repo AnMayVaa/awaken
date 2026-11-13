@@ -1,7 +1,7 @@
 import type { Difficulty, ItemId, Rank, StatKey } from './types';
 
 export const HABIT_DAYS = 66;
-export const STAT_KEYS: StatKey[] = ['STR', 'AGI', 'VIT', 'INT', 'SEN'];
+export const STAT_KEYS: StatKey[] = ['STR', 'AGI', 'VIT', 'INT', 'SEN', 'CHA', 'WIL'];
 export const RANKS: Rank[] = ['E', 'D', 'C', 'B', 'A', 'S'];
 
 export const STAT_META: Record<StatKey, { name: string; icon: string; desc: string; color: string }> = {
@@ -10,6 +10,8 @@ export const STAT_META: Record<StatKey, { name: string; icon: string; desc: stri
   VIT: { name: 'Vitality', icon: 'heart-pulse', desc: '+5 max HP per point', color: '#7CFF6B' },
   INT: { name: 'Intelligence', icon: 'brain', desc: '+0.5% dungeon XP per point', color: '#B58CFF' },
   SEN: { name: 'Sense', icon: 'eye', desc: '+0.5% gold from all sources per point', color: '#FFD166' },
+  CHA: { name: 'Charisma', icon: 'account-heart', desc: '+0.5% XP from social quests per point', color: '#FF7EB6' },
+  WIL: { name: 'Willpower', icon: 'shield-star', desc: '+0.5% XP from discipline quests per point', color: '#FF9F43' },
 };
 
 /** Level thresholds for hunter rank */
@@ -153,6 +155,8 @@ export const ITEMS: ItemDef[] = [
   { id: 'streak_shield', name: 'Streak Shield', desc: 'Automatically protects one habit streak from a missed day.', cost: 450, icon: 'shield-half-full', color: '#4FA8FF' },
   { id: 'penalty_pass', name: 'Penalty Pass', desc: 'Instantly clears an active penalty quest.', cost: 600, icon: 'ticket-confirmation', color: '#FFD166' },
   { id: 'xp_elixir', name: 'XP Elixir', desc: 'Double XP for 60 minutes.', cost: 350, icon: 'flask', color: '#B58CFF' },
+  { id: 'reroll_token', name: 'Reroll Token', desc: 'One extra Side Quest reroll today.', cost: 80, icon: 'dice-multiple', color: '#4FE3C1' },
+  { id: 'lucky_charm', name: 'Lucky Charm', desc: '24 h of boosted critical hits and loot drops.', cost: 250, icon: 'clover', color: '#45F0A0' },
 ];
 export const ITEM_MAP: Record<ItemId, ItemDef> = Object.fromEntries(ITEMS.map((i) => [i.id, i])) as Record<ItemId, ItemDef>;
 

@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
 
 import { BOSS_MAP } from '@/game/constants';
 import { addDays, fromDateKey, today, weekEnd } from '@/game/date';
+import { insights } from '@/game/recovery';
 import type { GameState } from '@/game/types';
 
 let initialised = false;
@@ -86,6 +87,26 @@ async function doSchedule(g: GameState) {
         body: `The Daily Quest is incomplete. ${hoursLeft} hour${hoursLeft === 1 ? '' : 's'} remain before the penalty is applied.`,
       });
     }
+  }
+
+  // Break Free: a discreet heads-up before your riskiest hour (needs a few logged urges/slips)
+  const riskyHours = new Set<number>();
+  for (const tr of g.recovery ?? []) {
+    const h = insights(tr).riskyHour;
+    if (h !== null) riskyHours.add(h);
+  }
+  for (const h of riskyHours) {
+    for (let i = 0; i < 7; i++) {
+      const d = at(addDays(t, i), h, 0);
+      d.setMinutes(d.getMinutes() - 15);
+      jobs.push({ date: d, title: '[SYSTEM] Stay sharp', body: 'Your high-risk window starts soon. Remember your plan — and the SOS button.' });
+    }
+  }
+
+  // Evening check-in nudge
+  if (!g.checkins?.[t]?.savedAt) {
+    const ev = at(t, Math.min(23, s.warningHour + 1), 0);
+    jobs.push({ date: ev, title: '[SYSTEM] Daily check-in', body: '30 seconds: mood, sleep, screen time. It steers tomorrow’s quests.' });
   }
 
   if (g.dungeon) {

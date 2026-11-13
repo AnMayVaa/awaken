@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -8,7 +9,10 @@ import type { CustomQuest, QuestTask, Rank, StatKey } from '@/game/types';
 import { systemConfirm } from '@/store/alerts';
 import { actions, useGame } from '@/store/game';
 import { Btn, Chip, Empty, Icon, Input, Panel, Pill, Row, Segment, Txt } from '@/ui/kit';
+import { UrgentBanner } from '@/ui/Fun';
 import { LogModal } from '@/ui/LogModal';
+import { MainQuestsView } from '@/ui/MainQuests';
+import { LibraryView, SideQuestsPanel } from '@/ui/SideQuests';
 import { Columns, Screen } from '@/ui/Screen';
 import { SystemModal } from '@/ui/SystemModal';
 import { C, F, glow, withAlpha } from '@/ui/theme';
@@ -65,6 +69,13 @@ function TaskRow({ t, color, onCustom, disabled }: { t: QuestTask; color: string
 const emptyForm = { title: '', note: '', difficulty: 'C' as Rank, stat: 'INT' as StatKey, repeat: 'daily' as 'daily' | 'once' };
 
 export default function QuestsScreen() {
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [tab, setTab] = useState<'today' | 'main' | 'library'>(params.tab === 'main' || params.tab === 'library' ? params.tab : 'today');
+  const [seen, setSeen] = useState(params.tab);
+  if (params.tab !== seen) {
+    setSeen(params.tab);
+    if (params.tab === 'main' || params.tab === 'library' || params.tab === 'today') setTab(params.tab);
+  }
   const g = useGame((s) => s.game);
   const [logEx, setLogEx] = useState<string | null>(null);
   const [form, setForm] = useState<typeof emptyForm | null>(null);
@@ -175,7 +186,7 @@ export default function QuestsScreen() {
   );
 
   const customPanel = (
-    <Panel key="custom" title="Your Quests" icon="clipboard-text" right={<Btn size="sm" icon="plus" label="New" onPress={openNew} testID="new-quest" />}>
+    <Panel key="custom" title="Your Own Quests" icon="clipboard-text" right={<Btn size="sm" icon="plus" label="New" onPress={openNew} testID="new-quest" />}>
       {!g.customQuests.length ? (
         <Empty icon="clipboard-plus-outline" title="No quests yet" text="Add your own tasks — study, chores, side projects. Harder ranks give more XP.">
           <Btn size="sm" kind="solid" label="Create quest" icon="plus" onPress={openNew} style={{ marginTop: 8 }} />
@@ -198,15 +209,36 @@ export default function QuestsScreen() {
 
   return (
     <Screen title="QUESTS" subtitle="Quest log">
-      <Columns>
-        {[
-          <View key="l">
-            {penaltyPanel}
-            {dailyPanel}
-          </View>,
-          <View key="r">{customPanel}</View>,
-        ]}
-      </Columns>
+      <View style={{ marginBottom: 14 }}>
+        <Segment
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'today', label: 'Today' },
+            { value: 'main', label: 'Main' },
+            { value: 'library', label: 'Library' },
+          ]}
+        />
+      </View>
+      {tab === 'today' ? <UrgentBanner /> : null}
+      {tab === 'today' ? (
+        <Columns>
+          {[
+            <View key="l">
+              {penaltyPanel}
+              {dailyPanel}
+            </View>,
+            <View key="r">
+              <SideQuestsPanel onBrowse={() => setTab('library')} />
+              {customPanel}
+            </View>,
+          ]}
+        </Columns>
+      ) : tab === 'main' ? (
+        <MainQuestsView />
+      ) : (
+        <LibraryView />
+      )}
 
       <LogModal exerciseId={logEx} onClose={() => setLogEx(null)} />
 

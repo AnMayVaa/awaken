@@ -1,4 +1,8 @@
-export type StatKey = 'STR' | 'AGI' | 'VIT' | 'INT' | 'SEN';
+import type { AreaId } from './areas';
+import type { QuestMetric } from './questLibrary';
+
+export type { AreaId };
+export type StatKey = 'STR' | 'AGI' | 'VIT' | 'INT' | 'SEN' | 'CHA' | 'WIL';
 export type Rank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 export type Difficulty = 'easy' | 'normal' | 'hard';
 export type Tone = 'info' | 'reward' | 'levelup' | 'rankup' | 'warning' | 'penalty' | 'boss' | 'achievement';
@@ -118,7 +122,7 @@ export interface Purchase {
   cost: number;
 }
 
-export type ItemId = 'hp_potion' | 'streak_shield' | 'penalty_pass' | 'xp_elixir';
+export type ItemId = 'hp_potion' | 'streak_shield' | 'penalty_pass' | 'xp_elixir' | 'reroll_token' | 'lucky_charm';
 
 export interface Bot {
   id: string;
@@ -166,6 +170,184 @@ export interface Counters {
   bestHabitStreak: number;
   purchases: number;
   totals: Record<string, number>;
+  sideQuests: number;
+  urgesResisted: number;
+  mainQuestsDone: number;
+  milestonesDone: number;
+  checkins: number;
+  reviews: number;
+  bestRecoveryDays: number;
+  crits: number;
+  drops: number;
+  urgentDone: number;
+  weeklyDone: number;
+  bestCombo: number;
+}
+
+/* ---------------- v2: life areas, adaptive quests, recovery, fulfillment ---------------- */
+
+export interface AreaProgress {
+  /** adaptive difficulty 1..5 */
+  tier: number;
+  done: number;
+  skipped: number;
+  expired: number;
+  /** last 20 outcomes, 1 = done, 0 = skipped/expired */
+  recent: number[];
+}
+
+export interface BoardQuest {
+  id: string;
+  templateId?: string;
+  source: 'library' | 'ai' | 'director';
+  area: AreaId;
+  title: string;
+  criteria: string;
+  why?: string;
+  tier: number;
+  minutes: number;
+  stat: StatKey;
+  metric?: QuestMetric;
+  status: 'open' | 'done' | 'skipped';
+  note?: string;
+  doneAt?: number;
+  auto?: boolean;
+}
+
+export interface QuestBoard {
+  date: string;
+  quests: BoardQuest[];
+  rerolls: number;
+  aiAt?: number;
+}
+
+export interface QuestHistoryItem {
+  ts: number;
+  date: string;
+  templateId?: string;
+  title: string;
+  area: AreaId;
+  tier: number;
+  status: 'done' | 'skipped' | 'expired';
+  source: BoardQuest['source'];
+  note?: string;
+}
+
+export interface Milestone {
+  id: string;
+  title: string;
+  criteria: string;
+  done: boolean;
+  doneAt?: number;
+}
+
+export interface MainQuest {
+  id: string;
+  area: AreaId;
+  title: string;
+  why: string;
+  woop?: { wish: string; outcome: string; obstacle: string; plan: string };
+  metric?: { unit: string; start: number; current: number; target: number };
+  deadline?: string;
+  milestones: Milestone[];
+  status: 'active' | 'done' | 'abandoned';
+  campaignId?: string;
+  createdAt: number;
+  completedAt?: number;
+}
+
+export type RecoveryCategory = 'porn' | 'social' | 'gaming' | 'sugar' | 'smoking' | 'alcohol' | 'gambling' | 'procrastination' | 'custom';
+
+export interface RecoveryEvent {
+  ts: number;
+  trigger?: string;
+  note?: string;
+}
+
+export interface RecoveryTrack {
+  id: string;
+  category: RecoveryCategory;
+  name: string;
+  why: string;
+  plan: string;
+  replacements: string[];
+  /** start of the current clean run (ms) */
+  startedAt: number;
+  /** clean ms accumulated in previous runs */
+  bankedMs: number;
+  bestMs: number;
+  relapses: RecoveryEvent[];
+  urges: (RecoveryEvent & { outcome: 'resisted' | 'lapsed' })[];
+  milestonesHit: number[];
+  createdAt: number;
+}
+
+export interface DailyCheckin {
+  date: string;
+  mood?: number; // 1..5
+  energy?: number; // 1..5
+  sleepHours?: number;
+  screenMinutes?: number;
+  steps?: number;
+  stepsAuto?: boolean;
+  gratitude?: string;
+  note?: string;
+  savedAt?: number;
+}
+
+export interface WellbeingEntry {
+  date: string;
+  answers: number[]; // 5 × 0..5
+  score: number; // 0..100
+}
+
+export interface WheelEntry {
+  date: string;
+  ratings: Partial<Record<AreaId, number>>; // 1..10
+}
+
+export interface WeeklyReview {
+  week: string;
+  date: string;
+  wins: string;
+  lessons: string;
+  focus: AreaId[];
+  rating: number; // 1..10
+}
+
+export interface DayActivity {
+  daily?: boolean;
+  side?: number;
+  habits?: number;
+  checkin?: boolean;
+  milestones?: number;
+  focusMin?: number;
+}
+
+export interface LifeProfile {
+  focusAreas: AreaId[];
+  questLoad: number;
+  dailyMinutes: number;
+  aiEnabled: boolean;
+  aiShareRecovery: boolean;
+}
+
+export interface UrgentQuest {
+  id: string;
+  title: string;
+  criteria: string;
+  area: AreaId;
+  expiresAt: number;
+  status: 'open' | 'done' | 'expired';
+}
+
+export interface FunState {
+  crate: { lastClaim: string | null; streak: number };
+  combo: { date: string; count: number };
+  urgent: { date: string | null; quest: UrgentQuest | null };
+  weeklyClaims: { week: string; claimed: string[] };
+  companion: { name: string; species: string | null; hatchedAt?: number };
+  luckyUntil: number;
 }
 
 export interface GameState {
@@ -195,6 +377,20 @@ export interface GameState {
   updatedAt: number;
   /** supabase user id this save last synced with */
   syncedUserId: string | null;
+
+  // v2
+  profile: LifeProfile;
+  areas: Record<AreaId, AreaProgress>;
+  board: QuestBoard;
+  questHistory: QuestHistoryItem[];
+  mainQuests: MainQuest[];
+  recovery: RecoveryTrack[];
+  checkins: Record<string, DailyCheckin>;
+  wellbeing: WellbeingEntry[];
+  wheel: WheelEntry[];
+  reviews: WeeklyReview[];
+  activity: Record<string, DayActivity>;
+  fun: FunState;
 }
 
 export interface GameEvent {

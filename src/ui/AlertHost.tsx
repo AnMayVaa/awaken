@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAlerts, type QueuedAlert } from '@/store/alerts';
 
 import { Btn, Icon, Panel, Txt } from './kit';
-import { C, F, textGlow, toneColor, withAlpha } from './theme';
+import { C, F, textGlow, toneColor, withAlpha, NATIVE_DRIVER } from './theme';
 
 const toneIcon: Record<string, string> = {
   info: 'information-variant',
@@ -18,6 +18,40 @@ const toneIcon: Record<string, string> = {
   achievement: 'trophy',
 };
 
+/** Celebratory particle burst behind the System window */
+function Burst({ color }: { color: string }) {
+  const [p] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    Animated.timing(p, { toValue: 1, duration: 1100, easing: Easing.out(Easing.cubic), useNativeDriver: NATIVE_DRIVER }).start();
+  }, [p]);
+  const dots = Array.from({ length: 18 }, (_, i) => {
+    const a = (i / 18) * Math.PI * 2;
+    const r = 150 + (i % 3) * 40;
+    return { a, r, size: 4 + (i % 4) * 2 };
+  });
+  return (
+    <View pointerEvents="none" style={styles.burst}>
+      {dots.map((d, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            position: 'absolute',
+            width: d.size,
+            height: d.size,
+            borderRadius: d.size / 2,
+            backgroundColor: i % 2 ? color : C.white,
+            opacity: p.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 0] }),
+            transform: [
+              { translateX: p.interpolate({ inputRange: [0, 1], outputRange: [0, Math.cos(d.a) * d.r] }) },
+              { translateY: p.interpolate({ inputRange: [0, 1], outputRange: [0, Math.sin(d.a) * d.r] }) },
+            ],
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
 function AlertCard({ alert }: { alert: QueuedAlert }) {
   const dismiss = useAlerts((s) => s.dismiss);
   const color = toneColor[alert.tone] ?? C.cyan;
@@ -26,15 +60,15 @@ function AlertCard({ alert }: { alert: QueuedAlert }) {
   const [lines] = useState(() => alert.lines.map(() => new Animated.Value(0)));
 
   useEffect(() => {
-    Animated.timing(appear, { toValue: 1, duration: 260, easing: Easing.out(Easing.back(1.4)), useNativeDriver: true }).start();
+    Animated.timing(appear, { toValue: 1, duration: 260, easing: Easing.out(Easing.back(1.4)), useNativeDriver: NATIVE_DRIVER }).start();
     Animated.stagger(
       140,
-      lines.map((l) => Animated.timing(l, { toValue: 1, duration: 260, delay: 180, useNativeDriver: true })),
+      lines.map((l) => Animated.timing(l, { toValue: 1, duration: 260, delay: 180, useNativeDriver: NATIVE_DRIVER })),
     ).start();
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1100, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: NATIVE_DRIVER }),
+        Animated.timing(pulse, { toValue: 0, duration: 1100, useNativeDriver: NATIVE_DRIVER }),
       ]),
     );
     loop.start();
@@ -53,6 +87,7 @@ function AlertCard({ alert }: { alert: QueuedAlert }) {
           opacity: appear,
           transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] }) }],
         }}>
+        {alert.tone === 'levelup' || alert.tone === 'rankup' || alert.tone === 'boss' || alert.tone === 'achievement' ? <Burst color={color} /> : null}
         <Animated.View pointerEvents="none" style={[styles.halo, { borderColor: withAlpha(color, 0.5), opacity: pulse }]} />
         <Panel color={color} intensity={2} style={{ marginBottom: 0, backgroundColor: 'rgba(3, 10, 24, 0.96)' }}>
           <View style={styles.topRow}>
@@ -118,9 +153,9 @@ function Toast({ t, index }: { t: QueuedAlert; index: number }) {
   const color = toneColor[t.tone] ?? C.cyan;
   useEffect(() => {
     Animated.sequence([
-      Animated.timing(a, { toValue: 1, duration: 220, useNativeDriver: true }),
+      Animated.timing(a, { toValue: 1, duration: 220, useNativeDriver: NATIVE_DRIVER }),
       Animated.delay(2100),
-      Animated.timing(a, { toValue: 0, duration: 220, useNativeDriver: true }),
+      Animated.timing(a, { toValue: 0, duration: 220, useNativeDriver: NATIVE_DRIVER }),
     ]).start(() => drop(t.id));
   }, [a, drop, t.id]);
   return (
@@ -180,6 +215,7 @@ const styles = StyleSheet.create({
     padding: 20,
     zIndex: 1000,
   },
+  burst: { position: 'absolute', left: '50%', top: '50%', width: 0, height: 0, alignItems: 'center', justifyContent: 'center' },
   halo: { position: 'absolute', top: -7, left: -7, right: -7, bottom: -7, borderWidth: 1, borderRadius: 4 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 2 },
   iconBox: { width: 26, height: 26, borderWidth: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 2 },
