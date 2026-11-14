@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import * as E from '@/game/engine';
 import { generateBoard } from '@/game/director';
+import type { PlanProposal } from '@/game/plan';
 import { RECOVERY_MAP } from '@/game/recovery';
 import type { AreaId, Bot, CustomQuest, CustomReward, DailyCheckin, GameEvent, GameState, Habit, ItemId, LifeProfile, MainQuest, Rank, RecoveryCategory, RecoveryTrack, Settings, StatKey, WeeklyReview } from '@/game/types';
 import { setHapticsEnabled } from '@/lib/haptics';
@@ -153,6 +154,8 @@ export const actions = {
   deleteRecovery: (id: string) => act((s) => E.deleteRecovery(s, id)),
   resistUrge: (id: string, trigger?: string) => act((s, ev) => E.resistUrge(s, ev, id, trigger)),
   relapse: (id: string, trigger?: string, note?: string, plan?: string) => act((s, ev) => E.relapse(s, ev, id, trigger, note, plan)),
+
+  applyPlan: (p: PlanProposal, opts: { habit: boolean; campaign: boolean; recovery: boolean }) => act((s, ev) => E.applyPlan(s, ev, p, opts)),
 
   // gimmicks
   claimCrate: () => act((s, ev) => E.claimCrate(s, ev)),

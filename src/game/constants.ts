@@ -60,20 +60,20 @@ export interface Exercise {
 }
 
 export const EXERCISES: Exercise[] = [
-  { id: 'pushups', name: 'Push-ups', unit: 'reps', unitShort: '', stat: 'STR', xpPer: 0.6, icon: 'arm-flex', category: 'strength', steps: [5, 10, 20], daily: { easy: 20, normal: 40, hard: 100 } },
-  { id: 'situps', name: 'Sit-ups', unit: 'reps', unitShort: '', stat: 'VIT', xpPer: 0.5, icon: 'human-handsup', category: 'core', steps: [5, 10, 20], daily: { easy: 20, normal: 40, hard: 100 } },
-  { id: 'squats', name: 'Squats', unit: 'reps', unitShort: '', stat: 'STR', xpPer: 0.5, icon: 'weight-lifter', category: 'strength', steps: [5, 10, 20], daily: { easy: 20, normal: 40, hard: 100 } },
-  { id: 'run', name: 'Running', unit: 'km', unitShort: 'km', stat: 'AGI', xpPer: 25, icon: 'run-fast', category: 'cardio', steps: [0.5, 1, 2], daily: { easy: 1, normal: 2, hard: 10 } },
-  { id: 'pullups', name: 'Pull-ups', unit: 'reps', unitShort: '', stat: 'STR', xpPer: 2, icon: 'weight-lifter', category: 'strength', steps: [1, 3, 5], daily: { easy: 5, normal: 10, hard: 30 } },
-  { id: 'plank', name: 'Plank', unit: 'sec', unitShort: 's', stat: 'VIT', xpPer: 0.3, icon: 'human-male', category: 'core', steps: [15, 30, 60], daily: { easy: 60, normal: 120, hard: 300 } },
-  { id: 'burpees', name: 'Burpees', unit: 'reps', unitShort: '', stat: 'AGI', xpPer: 1.2, icon: 'karate', category: 'cardio', steps: [5, 10, 20], daily: { easy: 10, normal: 25, hard: 60 } },
-  { id: 'jumprope', name: 'Jump rope', unit: 'min', unitShort: 'm', stat: 'AGI', xpPer: 6, icon: 'jump-rope', category: 'cardio', steps: [1, 5, 10], daily: { easy: 3, normal: 5, hard: 15 } },
-  { id: 'walk', name: 'Walking', unit: 'km', unitShort: 'km', stat: 'AGI', xpPer: 10, icon: 'walk', category: 'cardio', steps: [0.5, 1, 3], daily: { easy: 2, normal: 4, hard: 8 } },
-  { id: 'cycling', name: 'Cycling', unit: 'km', unitShort: 'km', stat: 'AGI', xpPer: 8, icon: 'bike', category: 'cardio', steps: [1, 5, 10], daily: { easy: 5, normal: 10, hard: 25 } },
+  { id: 'pushups', name: 'Push-ups', unit: 'reps', unitShort: '', stat: 'STR', xpPer: 0.6, icon: 'arm-flex', category: 'strength', steps: [5, 10, 20], daily: { starter: 10, easy: 20, normal: 40, hard: 100 } },
+  { id: 'situps', name: 'Sit-ups', unit: 'reps', unitShort: '', stat: 'VIT', xpPer: 0.5, icon: 'human-handsup', category: 'core', steps: [5, 10, 20], daily: { starter: 10, easy: 20, normal: 40, hard: 100 } },
+  { id: 'squats', name: 'Squats', unit: 'reps', unitShort: '', stat: 'STR', xpPer: 0.5, icon: 'weight-lifter', category: 'strength', steps: [5, 10, 20], daily: { starter: 15, easy: 20, normal: 40, hard: 100 } },
+  { id: 'run', name: 'Running', unit: 'km', unitShort: 'km', stat: 'AGI', xpPer: 25, icon: 'run-fast', category: 'cardio', steps: [0.5, 1, 2], daily: { starter: 0.5, easy: 1, normal: 2, hard: 10 } },
+  { id: 'pullups', name: 'Pull-ups', unit: 'reps', unitShort: '', stat: 'STR', xpPer: 2, icon: 'weight-lifter', category: 'strength', steps: [1, 3, 5], daily: { starter: 2, easy: 5, normal: 10, hard: 30 } },
+  { id: 'plank', name: 'Plank', unit: 'sec', unitShort: 's', stat: 'VIT', xpPer: 0.3, icon: 'human-male', category: 'core', steps: [15, 30, 60], daily: { starter: 30, easy: 60, normal: 120, hard: 300 } },
+  { id: 'burpees', name: 'Burpees', unit: 'reps', unitShort: '', stat: 'AGI', xpPer: 1.2, icon: 'karate', category: 'cardio', steps: [5, 10, 20], daily: { starter: 5, easy: 10, normal: 25, hard: 60 } },
+  { id: 'jumprope', name: 'Jump rope', unit: 'min', unitShort: 'm', stat: 'AGI', xpPer: 6, icon: 'jump-rope', category: 'cardio', steps: [1, 5, 10], daily: { starter: 2, easy: 3, normal: 5, hard: 15 } },
+  { id: 'walk', name: 'Walking', unit: 'km', unitShort: 'km', stat: 'AGI', xpPer: 10, icon: 'walk', category: 'cardio', steps: [0.5, 1, 3], daily: { starter: 1.5, easy: 2, normal: 4, hard: 8 } },
+  { id: 'cycling', name: 'Cycling', unit: 'km', unitShort: 'km', stat: 'AGI', xpPer: 8, icon: 'bike', category: 'cardio', steps: [1, 5, 10], daily: { starter: 3, easy: 5, normal: 10, hard: 25 } },
   { id: 'swim', name: 'Swimming', unit: 'min', unitShort: 'm', stat: 'VIT', xpPer: 6, icon: 'swim', category: 'cardio', steps: [5, 10, 20] },
-  { id: 'stretch', name: 'Stretching', unit: 'min', unitShort: 'm', stat: 'SEN', xpPer: 4, icon: 'yoga', category: 'mind', steps: [5, 10, 15], daily: { easy: 5, normal: 10, hard: 20 } },
-  { id: 'meditate', name: 'Meditation', unit: 'min', unitShort: 'm', stat: 'SEN', xpPer: 5, icon: 'meditation', category: 'mind', steps: [5, 10, 20], daily: { easy: 5, normal: 10, hard: 20 } },
-  { id: 'read', name: 'Reading', unit: 'min', unitShort: 'm', stat: 'INT', xpPer: 3, icon: 'book-open-page-variant', category: 'mind', steps: [10, 20, 30], daily: { easy: 10, normal: 20, hard: 45 } },
+  { id: 'stretch', name: 'Stretching', unit: 'min', unitShort: 'm', stat: 'SEN', xpPer: 4, icon: 'yoga', category: 'mind', steps: [5, 10, 15], daily: { starter: 5, easy: 5, normal: 10, hard: 20 } },
+  { id: 'meditate', name: 'Meditation', unit: 'min', unitShort: 'm', stat: 'SEN', xpPer: 5, icon: 'meditation', category: 'mind', steps: [5, 10, 20], daily: { starter: 3, easy: 5, normal: 10, hard: 20 } },
+  { id: 'read', name: 'Reading', unit: 'min', unitShort: 'm', stat: 'INT', xpPer: 3, icon: 'book-open-page-variant', category: 'mind', steps: [10, 20, 30], daily: { starter: 10, easy: 10, normal: 20, hard: 45 } },
 ];
 
 export const EXERCISE_MAP: Record<string, Exercise> = Object.fromEntries(EXERCISES.map((e) => [e.id, e]));
@@ -81,12 +81,17 @@ export const DAILY_ELIGIBLE = EXERCISES.filter((e) => e.daily);
 export const DEFAULT_DAILY = ['pushups', 'situps', 'squats', 'run'];
 
 export const DIFFICULTY_META: Record<Difficulty, { label: string; desc: string; hpLoss: number }> = {
+  starter: { label: 'Starter', desc: 'Tiny targets to build the routine first.', hpLoss: 0.1 },
   easy: { label: 'Casual', desc: 'Gentle targets. Light penalties.', hpLoss: 0.15 },
   normal: { label: 'Hunter', desc: 'Balanced targets for steady growth.', hpLoss: 0.25 },
   hard: { label: 'Nightmare', desc: '100 push-ups. 10 km. Every day.', hpLoss: 0.35 },
 };
 
 export const PENALTY_TASKS: Record<Difficulty, { exerciseId: string; target: number }[]> = {
+  starter: [
+    { exerciseId: 'squats', target: 15 },
+    { exerciseId: 'plank', target: 30 },
+  ],
   easy: [
     { exerciseId: 'burpees', target: 10 },
     { exerciseId: 'plank', target: 60 },

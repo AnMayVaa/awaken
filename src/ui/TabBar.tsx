@@ -56,8 +56,8 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
           numberOfLines={1}
           style={{
             fontFamily: F.displayMed,
-            fontSize: isWide ? 12 : 9,
-            letterSpacing: 1.2,
+            fontSize: isWide ? 12 : 10,
+            letterSpacing: isWide ? 1.2 : 0.6,
             marginTop: isWide ? 0 : 3,
             marginLeft: isWide ? 14 : 0,
             color: focused ? C.text : C.muted,

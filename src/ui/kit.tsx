@@ -38,7 +38,7 @@ const variantStyle: Record<Variant, TextStyle> = {
   bodyB: { fontFamily: F.bodyBold, fontSize: 16, color: C.text, lineHeight: 21 },
   small: { fontFamily: F.body, fontSize: 13.5, color: C.textDim, lineHeight: 18 },
   num: { fontFamily: F.display, fontSize: 16, color: C.text, letterSpacing: 0.5 },
-  tiny: { fontFamily: F.bodySemi, fontSize: 11.5, color: C.muted, letterSpacing: 0.4 },
+  tiny: { fontFamily: F.bodySemi, fontSize: 12, color: C.muted, letterSpacing: 0.3, lineHeight: 16 },
 };
 
 export function Txt({

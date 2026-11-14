@@ -2,11 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AREAS, type AreaId } from '@/game/areas';
-import { DAILY_ELIGIBLE, DEFAULT_DAILY, DIFFICULTY_META, EXERCISE_MAP } from '@/game/constants';
-import { RECOVERY_CATEGORIES } from '@/game/recovery';
-import { dailyTarget } from '@/game/engine';
-import type { Difficulty, RecoveryCategory } from '@/game/types';
 import { notificationsSupported, requestNotificationPermission } from '@/lib/notifications';
 import { cloudEnabled } from '@/lib/supabase';
 import { useAuth } from '@/lib/sync';
@@ -14,7 +9,8 @@ import { actions } from '@/store/game';
 
 import { AuthForm } from './AuthForm';
 import { Background } from './Background';
-import { Btn, Chip, Icon, Input, Panel, Row, Txt } from './kit';
+import { Btn, Icon, Input, Panel, Txt } from './kit';
+import { PlanBuilder, type PlanChoice } from './PlanBuilder';
 import { C, F, textGlow, withAlpha, NATIVE_DRIVER } from './theme';
 
 function Typewriter({ text, delay = 0, speed = 28, onDone, style }: { text: string; delay?: number; speed?: number; onDone?: () => void; style?: object }) {
@@ -53,11 +49,7 @@ export function Onboarding() {
   const [step, setStep] = useState(0);
   const [bootLine, setBootLine] = useState(0);
   const [name, setName] = useState('');
-  const [difficulty, setDifficulty] = useState<Difficulty>('normal');
-  const [daily, setDaily] = useState<string[]>([...DEFAULT_DAILY]);
   const [showAuth, setShowAuth] = useState(false);
-  const [focus, setFocus] = useState<AreaId[]>(['fitness', 'mind', 'learning']);
-  const [quit, setQuit] = useState<RecoveryCategory[]>([]);
   const session = useAuth((s) => s.session);
   const fade = useState(() => new Animated.Value(0))[0];
   const pulse = useState(() => new Animated.Value(0))[0];
@@ -78,17 +70,15 @@ export function Onboarding() {
     return () => loop.stop();
   }, [pulse]);
 
-  const toggleDaily = (id: string) => {
-    setDaily((d) => (d.includes(id) ? (d.length > 1 ? d.filter((x) => x !== id) : d) : d.length >= 5 ? d : [...d, id]));
-  };
 
-  const finish = async () => {
+  const finish = async (choice: PlanChoice) => {
     if (notificationsSupported) {
       try {
         await requestNotificationPermission();
       } catch {}
     }
-    actions.onboard(name || 'Player', { difficulty, dailyExercises: daily }, { focusAreas: focus, recovery: quit });
+    actions.onboard(name || 'Player', { difficulty: choice.plan.difficulty, dailyExercises: choice.plan.dailyExercises });
+    actions.applyPlan(choice.plan, choice.opts);
   };
 
   return (
@@ -160,132 +150,8 @@ export function Onboarding() {
           ) : null}
 
           {step === 2 ? (
-            <Panel title="Select difficulty" icon="sword-cross">
-              <Txt v="small" style={{ marginBottom: 12 }}>
-                Decides Daily Quest targets and how hard penalties hit. You can change it later.
-              </Txt>
-              {(Object.keys(DIFFICULTY_META) as Difficulty[]).map((d) => {
-                const m = DIFFICULTY_META[d];
-                const active = d === difficulty;
-                const col = d === 'hard' ? C.red : d === 'easy' ? C.green : C.cyan;
-                return (
-                  <Pressable
-                    key={d}
-                    onPress={() => setDifficulty(d)}
-                    style={[styles.card, { borderColor: withAlpha(col, active ? 0.9 : 0.25), backgroundColor: withAlpha(col, active ? 0.14 : 0.03) }]}>
-                    <Row style={{ justifyContent: 'space-between' }}>
-                      <Txt v="h3" color={active ? col : C.text}>
-                        {m.label.toUpperCase()}
-                      </Txt>
-                      {active ? <Icon name="check-decagram" color={col} /> : null}
-                    </Row>
-                    <Txt v="small" style={{ marginTop: 4 }}>
-                      {m.desc}
-                    </Txt>
-                    <Txt v="tiny" style={{ marginTop: 4 }}>
-                      {DEFAULT_DAILY.map((id) => `${EXERCISE_MAP[id].name} ${dailyTarget(id, d, 1)}${EXERCISE_MAP[id].unit === 'km' ? ' km' : ''}`).join(' · ')}
-                    </Txt>
-                  </Pressable>
-                );
-              })}
-              <Row style={{ marginTop: 6 }}>
-                <Btn label="Back" kind="ghost" onPress={() => setStep(1)} />
-                <Btn kind="solid" label="Next" flex onPress={() => setStep(3)} />
-              </Row>
-            </Panel>
-          ) : null}
-
-          {step === 3 ? (
-            <Panel title="Daily Quest setup" icon="clipboard-list">
-              <Txt v="small" style={{ marginBottom: 12 }}>
-                Pick 1–5 tasks for your Daily Quest. Targets grow as you level up.
-              </Txt>
-              <Row wrap gap={8} style={{ marginBottom: 16 }}>
-                {DAILY_ELIGIBLE.map((e) => (
-                  <Chip key={e.id} label={e.name} icon={e.icon} active={daily.includes(e.id)} onPress={() => toggleDaily(e.id)} />
-                ))}
-              </Row>
-              <View style={styles.preview}>
-                <Txt v="label" color={C.cyan} style={{ marginBottom: 8 }}>
-                  [Daily Quest] Body Forging
-                </Txt>
-                {daily.map((id) => (
-                  <Row key={id} style={{ justifyContent: 'space-between', paddingVertical: 3 }}>
-                    <Txt v="bodyB">{EXERCISE_MAP[id].name}</Txt>
-                    <Txt v="num" color={C.cyanHi} style={{ fontSize: 14 }}>
-                      {dailyTarget(id, difficulty, 1)} {EXERCISE_MAP[id].unit}
-                    </Txt>
-                  </Row>
-                ))}
-              </View>
-              <Row style={{ marginTop: 14 }}>
-                <Btn label="Back" kind="ghost" onPress={() => setStep(2)} />
-                <Btn kind="solid" label="Accept" flex icon="check" onPress={() => setStep(4)} />
-              </Row>
-            </Panel>
-          ) : null}
-
-          {step === 4 ? (
-            <Panel title="Choose your focus" icon="target">
-              <Txt v="small" style={{ marginBottom: 12 }}>
-                Pick up to 3 life areas to grow first. Side Quests will lean toward them — you can change this any time in the Life tab.
-              </Txt>
-              {AREAS.map((a) => {
-                const on = focus.includes(a.id);
-                return (
-                  <Pressable
-                    key={a.id}
-                    onPress={() => setFocus((f) => (on ? f.filter((x) => x !== a.id) : f.length >= 3 ? f : [...f, a.id]))}
-                    style={[styles.areaRow, { borderColor: withAlpha(a.color, on ? 0.9 : 0.2), backgroundColor: withAlpha(a.color, on ? 0.14 : 0.02) }]}>
-                    <Icon name={a.icon} size={20} color={a.color} />
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Txt v="bodyB" color={on ? C.white : C.text}>
-                        {a.name}
-                      </Txt>
-                      <Txt v="tiny">{a.rate}</Txt>
-                    </View>
-                    {on ? <Icon name="check-decagram" color={a.color} /> : null}
-                  </Pressable>
-                );
-              })}
-              <Row style={{ marginTop: 6 }}>
-                <Btn label="Back" kind="ghost" onPress={() => setStep(3)} />
-                <Btn kind="solid" label="Next" flex onPress={() => setStep(5)} disabled={!focus.length} />
-              </Row>
-            </Panel>
-          ) : null}
-
-          {step === 5 ? (
-            <Panel title="Break free (optional)" icon="link-variant-off" color={C.green}>
-              <Txt v="small" style={{ marginBottom: 12 }}>
-                Anything you want to cut down or quit? You’ll get a streak counter, an Urge SOS button and a plan. Recovery mode: a slip never costs HP. This stays private.
-              </Txt>
-              <Row wrap gap={6} style={{ marginBottom: 14 }}>
-                {RECOVERY_CATEGORIES.filter((c) => c.id !== 'custom').map((c) => (
-                  <Chip key={c.id} label={c.name} icon={c.icon} color={c.color} active={quit.includes(c.id)} onPress={() => setQuit((q) => (q.includes(c.id) ? q.filter((x) => x !== c.id) : [...q, c.id]))} />
-                ))}
-              </Row>
-              <Row>
-                <Btn label="Back" kind="ghost" onPress={() => setStep(4)} />
-                <Btn kind="solid" label={quit.length ? 'Next' : 'Skip'} flex onPress={() => setStep(6)} />
-              </Row>
-            </Panel>
-          ) : null}
-
-          {step === 6 ? (
-            <Panel title="Contract" icon="file-sign" color={C.gold}>
-              <View style={{ gap: 8, marginBottom: 16 }}>
-                <Txt v="body">· Clear the Daily Quest every day to grow.</Txt>
-                <Txt v="body">· Missing it costs HP and issues a Penalty Quest.</Txt>
-                <Txt v="body">· Side Quests across your life adapt to you every day.</Txt>
-                <Txt v="body">· Build habits for 66 days to forge them for life.</Txt>
-                <Txt v="body">· Every XP you earn damages the weekly boss.</Txt>
-                {notificationsSupported ? <Txt v="body">· The System will send you reminders.</Txt> : null}
-              </View>
-              <Row>
-                <Btn label="Back" kind="ghost" onPress={() => setStep(5)} />
-                <Btn kind="solid" label="I accept" color={C.gold} flex icon="lightning-bolt" onPress={finish} testID="accept" />
-              </Row>
+            <Panel title="Build your plan" icon="auto-fix">
+              <PlanBuilder intro={`Welcome, ${name.trim() || 'Player'}. A few quick questions so the System fits your life — not the other way around.`} onCancel={() => setStep(1)} onDone={finish} />
             </Panel>
           ) : null}
         </Animated.View>

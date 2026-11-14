@@ -42,6 +42,8 @@ export default function StatusScreen() {
   const { width } = useLayout();
   const now = useNow();
   const [titleOpen, setTitleOpen] = useState(false);
+  const [abilityOpen, setAbilityOpen] = useState(false);
+  const [logAll, setLogAll] = useState(false);
   const rank = rankForLevel(p.level);
   const nr = nextRank(p.level);
   const penalty = isPenaltyActive(g);
@@ -123,87 +125,77 @@ export default function StatusScreen() {
       key="stats"
       title="Abilities"
       icon="chart-bubble"
-      right={p.freePoints > 0 ? <Pill text={`${p.freePoints} POINTS`} color={C.gold} icon="plus-circle" /> : undefined}>
-      {STAT_KEYS.map((k) => {
-        const m = STAT_META[k];
-        return (
-          <View key={k} style={styles.statLine}>
-            <Icon name={m.icon} size={20} color={m.color} />
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <Txt v="h3" style={{ fontSize: 12 }}>
-                  {k} <Txt v="small"> {m.name}</Txt>
+      right={
+        <Pressable onPress={() => setAbilityOpen(true)} hitSlop={10} accessibilityLabel="Ability details" testID="abilities-open">
+          {p.freePoints > 0 ? <Pill text={`${p.freePoints} TO ASSIGN`} color={C.gold} icon="plus-circle" /> : <Icon name="information-outline" size={18} color={C.textDim} />}
+        </Pressable>
+      }>
+      <View style={styles.abilityGrid}>
+        {STAT_KEYS.map((k) => {
+          const m = STAT_META[k];
+          return (
+            <Pressable key={k} onPress={() => setAbilityOpen(true)} style={[styles.abilityCell, { borderColor: withAlpha(m.color, 0.22) }]}>
+              <Row gap={6}>
+                <Icon name={m.icon} size={16} color={m.color} />
+                <Txt v="h3" style={{ fontSize: 11, flex: 1 }}>
+                  {k}
                 </Txt>
-                <Txt v="num" color={m.color} glowColor={m.color}>
+                <Txt v="num" color={m.color} style={{ fontSize: 15 }}>
                   {p.stats[k]}
                 </Txt>
               </Row>
               <View style={styles.miniTrack}>
                 <View style={{ width: `${Math.min(100, (p.statXp[k] / statThreshold(p.stats[k])) * 100)}%`, height: '100%', backgroundColor: m.color, opacity: 0.8 }} />
               </View>
-            </View>
-            {p.freePoints > 0 ? <Btn icon="plus" size="sm" color={C.gold} onPress={() => actions.allocate(k)} style={{ marginLeft: 10 }} testID={`alloc-${k}`} /> : null}
-          </View>
-        );
-      })}
-      <Txt v="tiny" style={{ marginTop: 6 }}>
-        Stats grow from activity. Level-ups and Daily Quests grant ability points.
-      </Txt>
+            </Pressable>
+          );
+        })}
+      </View>
+      {p.freePoints > 0 ? (
+        <Btn kind="solid" color={C.gold} icon="plus-circle" label={`Assign ${p.freePoints} point${p.freePoints === 1 ? '' : 's'}`} onPress={() => setAbilityOpen(true)} style={{ marginTop: 10 }} testID="assign-points" />
+      ) : null}
     </Panel>
   );
 
+  const todayItems = [
+    { key: 'daily', icon: 'sword', color: C.gold, label: 'Daily Quest', done: g.daily.completed, sub: g.daily.completed ? 'Cleared — rewards claimed' : `${dailyDone}/${g.daily.tasks.length} tasks · resets at midnight`, href: '/quests' },
+    { key: 'side', icon: 'map-marker-star', color: C.cyan, label: 'Side Quests', done: g.board.quests.length > 0 && sideDone >= g.board.quests.length, sub: `${sideDone}/${g.board.quests.length} cleared`, href: '/quests' },
+    { key: 'habits', icon: 'calendar-check', color: C.cyan, label: 'Habits', done: habitsActive > 0 && habitsDone === habitsActive, sub: habitsActive ? `${habitsDone}/${habitsActive} checked in` : 'Start a 66-day challenge', href: '/habits' },
+    ...(bestFree !== null
+      ? [{ key: 'free', icon: 'link-variant-off', color: C.green, label: 'Break Free', done: false, sub: `Best streak ${bestFree} day${bestFree === 1 ? '' : 's'} · Urge SOS ready`, href: '/habits?view=free' }]
+      : []),
+    { key: 'checkin', icon: 'clipboard-pulse', color: C.gold, label: 'Life check-in', done: checkedIn, sub: checkedIn ? 'Done — steering tomorrow’s quests' : 'Mood, sleep, screen time · 30 s', href: '/life' },
+    { key: 'dungeon', icon: 'gate', color: C.purple, label: 'Focus Dungeon', done: false, sub: g.dungeon ? `In progress · ${formatHM(g.dungeon.endsAt - now)} left` : `${g.counters.dungeonsCleared} cleared · optional`, href: '/train?view=dungeon' },
+  ];
+  const todayDone = todayItems.filter((t) => t.done).length;
   const todayPanel = (
-    <Panel key="today" title="Today" icon="calendar-today" color={penalty ? C.red : C.cyan}>
-      <Pressable onPress={() => router.navigate('/quests')} style={styles.todayRow}>
-        <Icon name={g.daily.completed ? 'check-decagram' : 'sword'} size={22} color={g.daily.completed ? C.green : C.gold} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Txt v="bodyB">Daily Quest</Txt>
-          <Txt v="small">{g.daily.completed ? 'Cleared — rewards claimed' : `${dailyDone}/${g.daily.tasks.length} tasks · resets at midnight`}</Txt>
-        </View>
-        <Icon name="chevron-right" color={C.muted} />
-      </Pressable>
-      <Pressable onPress={() => router.navigate('/quests')} style={styles.todayRow}>
-        <Icon name="map-marker-star" size={22} color={sideDone >= g.board.quests.length && g.board.quests.length ? C.green : C.cyan} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Txt v="bodyB">Side Quests</Txt>
-          <Txt v="small">{`${sideDone}/${g.board.quests.length} cleared · adaptive, across your life areas`}</Txt>
-        </View>
-        <Icon name="chevron-right" color={C.muted} />
-      </Pressable>
-      <Pressable onPress={() => router.navigate('/habits')} style={styles.todayRow}>
-        <Icon name="calendar-check" size={22} color={habitsActive && habitsDone === habitsActive ? C.green : C.cyan} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Txt v="bodyB">Habits</Txt>
-          <Txt v="small">{habitsActive ? `${habitsDone}/${habitsActive} checked in today` : 'Start a 66-day challenge'}</Txt>
-        </View>
-        <Icon name="chevron-right" color={C.muted} />
-      </Pressable>
-      {bestFree !== null ? (
-        <Pressable onPress={() => router.navigate('/habits?view=free')} style={styles.todayRow}>
-          <Icon name="link-variant-off" size={22} color={C.green} />
+    <Panel
+      key="today"
+      title="Today"
+      icon="calendar-today"
+      color={penalty ? C.red : C.cyan}
+      right={<Txt v="num" color={todayDone === todayItems.length ? C.green : C.textDim} style={{ fontSize: 13 }}>{`${todayDone}/${todayItems.length}`}</Txt>}>
+      {todayItems.map((t, i) => (
+        <Pressable
+          key={t.key}
+          onPress={() => router.navigate(t.href as never)}
+          style={({ pressed }) => [styles.todayRow, i === todayItems.length - 1 && { borderBottomWidth: 0 }, pressed && { backgroundColor: withAlpha(C.cyan, 0.06) }]}
+          accessibilityRole="button"
+          accessibilityLabel={`${t.label}: ${t.sub}`}>
+          <View style={[styles.todayIcon, { borderColor: withAlpha(t.done ? C.green : t.color, 0.45), backgroundColor: withAlpha(t.done ? C.green : t.color, 0.1) }]}>
+            <Icon name={t.done ? 'check-bold' : t.icon} size={18} color={t.done ? C.green : t.color} />
+          </View>
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Txt v="bodyB">Break Free</Txt>
-            <Txt v="small">{`Best current streak: ${bestFree} day${bestFree === 1 ? '' : 's'} · Urge SOS ready`}</Txt>
+            <Txt v="bodyB" color={t.done ? C.textDim : C.text} style={t.done ? { textDecorationLine: 'line-through' } : undefined}>
+              {t.label}
+            </Txt>
+            <Txt v="small" numberOfLines={1}>
+              {t.sub}
+            </Txt>
           </View>
           <Icon name="chevron-right" color={C.muted} />
         </Pressable>
-      ) : null}
-      <Pressable onPress={() => router.navigate('/life')} style={styles.todayRow}>
-        <Icon name="clipboard-pulse" size={22} color={checkedIn ? C.green : C.gold} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Txt v="bodyB">Life check-in</Txt>
-          <Txt v="small">{checkedIn ? 'Done — your data is steering tomorrow’s quests' : 'Mood, sleep, screen time, steps · 30 s'}</Txt>
-        </View>
-        <Icon name="chevron-right" color={C.muted} />
-      </Pressable>
-      <Pressable onPress={() => router.navigate('/train?view=dungeon')} style={[styles.todayRow, { borderBottomWidth: 0 }]}>
-        <Icon name="gate" size={22} color={g.dungeon ? C.green : C.purple} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Txt v="bodyB">Dungeon</Txt>
-          <Txt v="small">{g.dungeon ? `In progress · ${formatHM(g.dungeon.endsAt - now)} left` : `${g.counters.dungeonsCleared} cleared · ${formatHM(g.counters.focusMinutes * 60000)} focus`}</Txt>
-        </View>
-        <Icon name="chevron-right" color={C.muted} />
-      </Pressable>
+      ))}
     </Panel>
   );
 
@@ -263,8 +255,20 @@ export default function StatusScreen() {
   );
 
   const logPanel = (
-    <Panel key="log" title="System Log" icon="console-line">
-      {g.logs.slice(0, 7).map((l) => (
+    <Panel
+      key="log"
+      title="System Log"
+      icon="console-line"
+      right={
+        g.logs.length > 3 ? (
+          <Pressable onPress={() => setLogAll((v) => !v)} hitSlop={10} testID="log-toggle">
+            <Txt v="label" color={C.cyan}>
+              {logAll ? 'Less' : 'More'}
+            </Txt>
+          </Pressable>
+        ) : undefined
+      }>
+      {g.logs.slice(0, logAll ? 12 : 3).map((l) => (
         <Row key={l.id} gap={8} style={{ paddingVertical: 4, alignItems: 'flex-start' }}>
           <Txt v="tiny" style={{ width: 44 }}>
             {new Date(l.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -308,11 +312,11 @@ export default function StatusScreen() {
         {[
           <View key="l">
             {player}
-            {stats}
+            {todayPanel}
           </View>,
           <View key="r">
+            {stats}
             <CompanionCard />
-            {todayPanel}
             <WeeklyPanel />
             {bossPanel}
             {menu}
@@ -342,6 +346,36 @@ export default function StatusScreen() {
           );
         })}
       </SystemModal>
+      <SystemModal visible={abilityOpen} onClose={() => setAbilityOpen(false)} title="Abilities" icon="chart-bubble">
+        <Txt v="small" style={{ marginBottom: 6 }}>
+          {p.freePoints > 0 ? `You have ${p.freePoints} point${p.freePoints === 1 ? '' : 's'} to assign. Tap + to raise an ability.` : 'Stats grow on their own as you complete quests. Level-ups and Daily Quests also grant points to assign.'}
+        </Txt>
+        {STAT_KEYS.map((k) => {
+          const m = STAT_META[k];
+          return (
+            <View key={k} style={styles.statLine}>
+              <Icon name={m.icon} size={22} color={m.color} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Txt v="h3" style={{ fontSize: 12 }}>
+                    {k} <Txt v="small"> {m.name}</Txt>
+                  </Txt>
+                  <Txt v="num" color={m.color} glowColor={m.color}>
+                    {p.stats[k]}
+                  </Txt>
+                </Row>
+                <Txt v="tiny" numberOfLines={2}>
+                  {m.desc}
+                </Txt>
+                <View style={styles.miniTrack}>
+                  <View style={{ width: `${Math.min(100, (p.statXp[k] / statThreshold(p.stats[k])) * 100)}%`, height: '100%', backgroundColor: m.color, opacity: 0.8 }} />
+                </View>
+              </View>
+              {p.freePoints > 0 ? <Btn icon="plus" size="sm" color={C.gold} onPress={() => actions.allocate(k)} style={{ marginLeft: 10, minWidth: 44, minHeight: 40 }} testID={`alloc-${k}`} /> : null}
+            </View>
+          );
+        })}
+      </SystemModal>
     </Screen>
   );
 }
@@ -349,8 +383,11 @@ export default function StatusScreen() {
 const styles = StyleSheet.create({
   statRow: { flexDirection: 'row', marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: C.lineDim },
   statLine: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(60,200,255,0.06)' },
+  abilityGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  abilityCell: { flexGrow: 1, flexBasis: '45%', borderWidth: 1, borderRadius: 3, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: 'rgba(255,255,255,0.015)' },
   miniTrack: { height: 3, backgroundColor: 'rgba(255,255,255,0.06)', marginTop: 5, borderRadius: 2, overflow: 'hidden' },
-  todayRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.lineDim },
+  todayRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, minHeight: 56, borderBottomWidth: 1, borderBottomColor: C.lineDim },
+  todayIcon: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   bossIcon: { width: 62, height: 62, borderWidth: 1, borderRadius: 3, alignItems: 'center', justifyContent: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
   tile: { borderWidth: 1, borderRadius: 3, paddingVertical: 14, alignItems: 'center', gap: 1 },

@@ -14,7 +14,7 @@ export const C = {
   blue: '#2A7BFF',
   text: '#DDF3FF',
   textDim: '#86A9C6',
-  muted: '#4D6E8C',
+  muted: '#6E8FAE',
   gold: '#FFD166',
   red: '#FF3D5A',
   redDim: 'rgba(255, 61, 90, 0.18)',

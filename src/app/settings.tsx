@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Linking, Platform, Switch, View } from 'react-native';
 
@@ -98,6 +99,7 @@ export default function SettingsScreen() {
 
   const player = (
     <Panel key="pl" title="Player" icon="account-edit">
+      <Btn kind="solid" color={C.green} icon="auto-fix" label="Re-plan with the System" onPress={() => router.push('/plan')} style={{ marginBottom: 14 }} testID="replan" />
       <Input label="Player name" value={name} onChangeText={setName} maxLength={18} onBlur={() => actions.rename(name)} onSubmitEditing={() => actions.rename(name)} />
       <Txt v="label" style={{ marginBottom: 6 }}>
         Difficulty
@@ -123,6 +125,12 @@ export default function SettingsScreen() {
 
   const prefs = (
     <Panel key="pr" title="System preferences" icon="tune">
+      <Toggle
+        label="Gentle mode"
+        desc="No HP loss or Penalty Quests when you miss a day — only the streak resets. Good while you build the routine."
+        value={s.penalties === false}
+        onChange={(v) => actions.settings({ penalties: !v })}
+      />
       {notificationsSupported ? (
         <>
           <Toggle
@@ -141,7 +149,7 @@ export default function SettingsScreen() {
             }}
           />
           <HourPicker label="Daily Quest alert" value={s.reminderHour} onChange={(h) => actions.settings({ reminderHour: h })} />
-          <HourPicker label="Penalty warning" value={s.warningHour} onChange={(h) => actions.settings({ warningHour: h })} />
+          <HourPicker label={s.penalties === false ? 'Evening reminder' : 'Penalty warning'} value={s.warningHour} onChange={(h) => actions.settings({ warningHour: h })} />
         </>
       ) : (
         <Txt v="small" style={{ paddingVertical: 8 }}>

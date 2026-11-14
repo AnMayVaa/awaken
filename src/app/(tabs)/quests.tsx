@@ -78,6 +78,7 @@ export default function QuestsScreen() {
   }
   const g = useGame((s) => s.game);
   const [logEx, setLogEx] = useState<string | null>(null);
+  const [showCleared, setShowCleared] = useState(false);
   const [form, setForm] = useState<typeof emptyForm | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const penalty = isPenaltyActive(g) ? g.penalty : null;
@@ -160,28 +161,50 @@ export default function QuestsScreen() {
     </Panel>
   ) : null;
 
+  const gentle = g.settings.penalties === false;
   const dailyPanel = (
     <Panel key="daily" title="Daily Quest" icon="sword" color={g.daily.completed ? C.green : C.cyan} right={!g.daily.completed ? <Countdown color={C.gold} /> : <Pill text="CLEARED" color={C.green} icon="check" />}>
-      <Txt style={{ fontFamily: F.display, color: C.cyanHi, fontSize: 13, letterSpacing: 1.5, marginBottom: 2 }}>[Body Forging]</Txt>
-      <Txt v="small" style={{ marginBottom: 6 }}>
-        Training to become stronger. Logs from the Train tab count here too.
-      </Txt>
-      {g.daily.tasks.map((t) => (
-        <TaskRow key={t.id} t={t} color={C.cyan} disabled={g.daily.completed} onCustom={() => setLogEx(t.exerciseId)} />
-      ))}
-      <View style={styles.rewardBox}>
-        <Txt v="label" color={C.gold}>
-          Rewards
-        </Txt>
-        <Txt v="small" color={C.text}>
-          +{reward.xp} XP · +{reward.gold} Gold · +1 ability point · full HP recovery
-        </Txt>
-        {!g.daily.completed ? (
-          <Txt v="tiny" color={C.red} style={{ marginTop: 4 }}>
-            WARNING: failing to complete the Daily Quest will result in a penalty.
+      {g.daily.completed && !showCleared ? (
+        <Pressable onPress={() => setShowCleared(true)} style={styles.clearedRow} testID="daily-cleared">
+          <Icon name="check-decagram" size={26} color={C.green} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Txt v="bodyB">All {g.daily.tasks.length} tasks done</Txt>
+            <Txt v="small" numberOfLines={1}>
+              {g.daily.tasks.map((t) => t.label).join(' · ')}
+            </Txt>
+          </View>
+          <Icon name="chevron-down" color={C.muted} />
+        </Pressable>
+      ) : (
+        <>
+          <Txt v="small" style={{ marginBottom: 4 }}>
+            Tap a button to log reps. Logs from the Train tab count here too.
           </Txt>
-        ) : null}
-      </View>
+          {g.daily.tasks.map((t) => (
+            <TaskRow key={t.id} t={t} color={C.cyan} disabled={g.daily.completed} onCustom={() => setLogEx(t.exerciseId)} />
+          ))}
+          {g.daily.completed ? (
+            <Pressable onPress={() => setShowCleared(false)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 8 }}>
+              <Txt v="label" color={C.cyan}>
+                Collapse
+              </Txt>
+            </Pressable>
+          ) : null}
+        </>
+      )}
+      {!g.daily.completed ? (
+        <View style={styles.rewardBox}>
+          <Txt v="small" color={C.text}>
+            <Txt v="label" color={C.gold}>
+              Reward{'  '}
+            </Txt>
+            +{reward.xp} XP · +{reward.gold} G · +1 ability point
+          </Txt>
+          <Txt v="tiny" color={gentle ? C.textDim : C.red} style={{ marginTop: 4 }}>
+            {gentle ? 'Gentle mode: missing a day only resets your streak — no penalty.' : 'Miss it and a Penalty Quest appears tomorrow. Change this in Settings → Gentle mode.'}
+          </Txt>
+        </View>
+      ) : null}
     </Panel>
   );
 
@@ -299,6 +322,7 @@ export default function QuestsScreen() {
 }
 
 const styles = StyleSheet.create({
+  clearedRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   task: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.lineDim },
   track: { height: 4, backgroundColor: 'rgba(255,255,255,0.06)', marginTop: 8, borderRadius: 2, overflow: 'hidden' },
   rewardBox: { marginTop: 12, padding: 10, borderWidth: 1, borderColor: withAlpha(C.gold, 0.3), borderRadius: 3, backgroundColor: withAlpha(C.gold, 0.05), gap: 3 },

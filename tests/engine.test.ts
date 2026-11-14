@@ -7,6 +7,7 @@ import { QUEST_LIBRARY } from '../src/game/questLibrary';
 import { generateBoard, lifeScore, metricMet } from '../src/game/director';
 import { AREA_IDS } from '../src/game/areas';
 import { CAMPAIGNS } from '../src/game/campaigns';
+import { buildPlan, defaultAnswers } from '../src/game/plan';
 import { crateDay, dailyBuff, weeklyChallenges, companionStage } from '../src/game/fun';
 import { addDays, today, weekId } from '../src/game/date';
 
@@ -321,3 +322,37 @@ console.log('\nALL v2 TESTS PASSED');
   console.log('✓ gimmicks: crate, combo, buff, weekly, companion, items · crits so far', s.counters.crits, 'drops', s.counters.drops);
 }
 console.log('\nALL GIMMICK TESTS PASSED');
+
+
+// ================= plan builder =================
+{
+  const light = buildPlan({ ...defaultAnswers(), goals: ['sleep', 'screen'], minutes: 10, fitness: 'sitting', style: 'gentle', program: true });
+  assert.equal(light.difficulty, 'starter');
+  assert.deepEqual(light.dailyExercises, ['squats', 'walk']);
+  assert.equal(light.questLoad, 1);
+  assert.equal(light.penalties, false);
+  assert.equal(light.campaign, 'sleep');
+  assert.deepEqual(light.focusAreas, ['health', 'digital']);
+  const heavy = buildPlan({ ...defaultAnswers(), goals: ['fit'], minutes: 60, fitness: 'regular', style: 'hardcore' });
+  assert.equal(heavy.difficulty, 'hard');
+  assert.equal(heavy.questLoad, 5);
+  assert.equal(heavy.campaign, undefined);
+
+  const s = fresh(); ev = [];
+  s.board = { date: t, quests: generateBoard(s, t, 4), rerolls: 3 };
+  E.applyPlan(s, ev, light, { habit: true, campaign: true, recovery: true });
+  assert.equal(s.settings.penalties, false);
+  assert.equal(s.daily.tasks.length, 2);
+  assert.equal(s.board.quests.filter((q) => q.status === 'open').length, 1, 'board right-sized to 1');
+  assert.equal(s.habits.length, 1);
+  assert.equal(s.mainQuests.length, 1);
+  assert.ok(s.profile.planned);
+  // gentle mode: missing a day costs no HP and creates no penalty quest
+  const hp = s.player.hp;
+  s.lastDate = addDays(t, -1); s.daily.date = s.lastDate; s.daily.completed = false;
+  E.rollover(s, ev);
+  assert.equal(s.player.hp, hp, 'no HP loss in gentle mode');
+  assert.equal(s.penalty, null, 'no penalty quest in gentle mode');
+  console.log('✓ plan builder: light plan', light.dailyExercises.join('+'), '| heavy load', heavy.questLoad, '| gentle mode safe');
+}
+console.log('\nALL PLAN TESTS PASSED');

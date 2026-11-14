@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -449,7 +450,7 @@ export default function LifeScreen() {
         color={C.purple}
         value={String(g.profile.questLoad)}
         onChange={(v) => actions.setProfile({ questLoad: Number(v) })}
-        options={['2', '3', '4', '5', '6'].map((x) => ({ value: x, label: x }))}
+        options={['1', '2', '3', '4', '5', '6'].map((x) => ({ value: x, label: x }))}
       />
       <Txt v="label" style={{ marginTop: 12, marginBottom: 6 }}>
         Time per day for side quests
@@ -463,6 +464,7 @@ export default function LifeScreen() {
       <Txt v="tiny" style={{ marginTop: 8 }}>
         Changes apply from tomorrow’s board (adding quests applies now).
       </Txt>
+      <Btn style={{ marginTop: 12 }} color={C.green} icon="auto-fix" label="Re-plan with the System" onPress={() => router.push('/plan')} />
     </Panel>
   );
 

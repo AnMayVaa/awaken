@@ -24,6 +24,7 @@ import { hash, uid } from './rng';
 import { AREA_IDS, AREA_MAP } from './areas';
 import { CAMPAIGN_MAP } from './campaigns';
 import { adapt, boardQuestFrom, DAILY_REROLLS, defaultAreas, defaultProfile, generateBoard, MAX_BOARD, metricMet, pickForArea, sideReward } from './director';
+import type { PlanProposal } from './plan';
 import { QUEST_MAP } from './questLibrary';
 import { comboMult, crateDay, CRATE_DAYS, critChance, dailyBuff, dropChance, rollDrop, URGENT_MINUTES, URGENT_POOL, weeklyChallenges, weeklyReward } from './fun';
 import { bestDays, cleanDays, cleanMs, DAY_MS, milestoneReward, RECOVERY_MAP, RECOVERY_MILESTONES } from './recovery';
@@ -148,6 +149,7 @@ export function defaultSettings(): Settings {
     warningHour: 21,
     strictDungeon: true,
     haptics: true,
+    penalties: true,
   };
 }
 
@@ -265,7 +267,7 @@ export function defaultFun(): GameState['fun'] {
   };
 }
 
-const START_TIER: Record<Difficulty, number> = { easy: 1.2, normal: 1.6, hard: 2.3 };
+export const START_TIER: Record<Difficulty, number> = { starter: 1, easy: 1.2, normal: 1.6, hard: 2.3 };
 
 /** Fill in any fields missing from older saves. */
 export function migrate(raw: Partial<GameState> | null | undefined): GameState {
@@ -465,7 +467,16 @@ export function rollover(s: GameState, ev: GameEvent[], now = new Date()): boole
       const day = addDays(s.lastDate, i);
       const completed = s.daily.date === day && s.daily.completed;
       if (!completed && s.onboarded && penalties < 3) {
-        applyPenalty(s, ev, day);
+        if (s.settings.penalties === false) {
+          // Gentle mode: no HP loss, no penalty quest — just a fresh start
+          if (penalties === 0) {
+            s.counters.dailyStreak = 0;
+            emit(ev, 'info', 'DAILY QUEST MISSED', ['Gentle mode: no penalty.', 'Today is a fresh start — even one task counts.'], true);
+            log(s, `Daily Quest missed (${day}). Gentle mode — no penalty.`, 'info');
+          }
+        } else {
+          applyPenalty(s, ev, day);
+        }
         penalties++;
       }
     }
@@ -1203,7 +1214,7 @@ export function evaluateMetrics(s: GameState, ev: GameEvent[]): boolean {
 export function setProfile(s: GameState, patch: Partial<LifeProfile>) {
   const before = s.profile.questLoad;
   s.profile = { ...s.profile, ...patch, focusAreas: (patch.focusAreas ?? s.profile.focusAreas).slice(0, 3) };
-  s.profile.questLoad = Math.max(2, Math.min(6, s.profile.questLoad));
+  s.profile.questLoad = Math.max(1, Math.min(6, s.profile.questLoad));
   if (s.onboarded && s.profile.questLoad > before) {
     const open = s.board.quests.filter((q) => q.status === 'open').length;
     const add = s.profile.questLoad - open;
@@ -1433,4 +1444,60 @@ export function saveReview(s: GameState, ev: GameEvent[], r: Omit<WeeklyReview, 
   }
   if (s.reviews.length > 104) s.reviews.shift();
   evaluateMetrics(s, ev);
+}
+
+/* ---- Plan Builder ---- */
+
+export function applyPlan(s: GameState, ev: GameEvent[], p: PlanProposal, opts: { habit: boolean; campaign: boolean; recovery: boolean }) {
+  applySettings(s, {
+    difficulty: p.difficulty,
+    dailyExercises: p.dailyExercises,
+    penalties: p.penalties,
+    strictDungeon: p.strictDungeon,
+    reminderHour: p.reminderHour,
+    warningHour: p.warningHour,
+  });
+  // if today's daily isn't done yet, rebuild it with the new targets
+  if (!s.daily.completed) {
+    const old = s.daily.tasks;
+    s.daily.tasks = makeTasks(s.settings.dailyExercises, s.settings.difficulty, s.player.level).map((t) => {
+      const prev = old.find((o) => o.exerciseId === t.exerciseId);
+      return prev ? { ...t, progress: prev.progress } : t;
+    });
+  }
+  s.profile = { ...s.profile, focusAreas: p.focusAreas.slice(0, 3), questLoad: p.questLoad, dailyMinutes: p.dailyMinutes, planned: true };
+  // fresh areas start at a difficulty that matches the plan
+  for (const a of AREA_IDS) {
+    const ar = s.areas[a];
+    if (ar.done + ar.skipped + ar.expired === 0) ar.tier = START_TIER[p.difficulty];
+  }
+  // right-size today's side quests: keep finished ones, replace untouched director picks
+  if (s.onboarded) {
+    const kept = s.board.quests.filter((q) => q.status !== 'open' || q.source !== 'director');
+    const openKept = kept.filter((q) => q.status === 'open').length;
+    const doneToday = kept.filter((q) => q.status === 'done').length;
+    const need = Math.max(0, p.questLoad - openKept - doneToday);
+    s.board.quests = [...kept, ...generateBoard(s, s.board.date, need)];
+  }
+  const lines: string[] = [];
+  if (opts.habit && p.habit && !s.habits.some((h) => h.name === p.habit!.name)) {
+    addHabit(s, p.habit);
+    lines.push(`66-day habit: ${p.habit.name}`);
+  }
+  if (opts.campaign && p.campaign && startCampaign(s, p.campaign)) lines.push(`Program: ${CAMPAIGN_MAP[p.campaign].title}`);
+  if (opts.recovery) {
+    for (const c of p.recovery) {
+      if (s.recovery.some((r) => r.category === c)) continue;
+      const m = RECOVERY_MAP[c];
+      addRecovery(s, { category: c, name: m.name, why: '', plan: m.plan, replacements: m.replacements.slice(0, 4) });
+      lines.push(`Break Free: ${m.name}`);
+    }
+  }
+  emit(ev, 'reward', 'PLAN ACCEPTED', [
+    'The System has adapted to you.',
+    `${p.questLoad} side quest${p.questLoad === 1 ? '' : 's'} a day · ${p.penalties ? 'penalties on' : 'Gentle mode'}`,
+    ...lines,
+    'Start small. Difficulty rises as you win.',
+  ]);
+  log(s, 'New personal plan accepted.', 'info');
 }

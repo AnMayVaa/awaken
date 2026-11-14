@@ -4,7 +4,7 @@ import type { QuestMetric } from './questLibrary';
 export type { AreaId };
 export type StatKey = 'STR' | 'AGI' | 'VIT' | 'INT' | 'SEN' | 'CHA' | 'WIL';
 export type Rank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
-export type Difficulty = 'easy' | 'normal' | 'hard';
+export type Difficulty = 'starter' | 'easy' | 'normal' | 'hard';
 export type Tone = 'info' | 'reward' | 'levelup' | 'rankup' | 'warning' | 'penalty' | 'boss' | 'achievement';
 
 export interface Player {
@@ -150,6 +150,8 @@ export interface Settings {
   warningHour: number;
   strictDungeon: boolean;
   haptics: boolean;
+  /** false = Gentle mode: a missed Daily Quest never costs HP */
+  penalties: boolean;
 }
 
 export interface Counters {
@@ -330,6 +332,8 @@ export interface LifeProfile {
   dailyMinutes: number;
   aiEnabled: boolean;
   aiShareRecovery: boolean;
+  /** the player finished the Plan Builder */
+  planned?: boolean;
 }
 
 export interface UrgentQuest {

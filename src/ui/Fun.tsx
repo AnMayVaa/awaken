@@ -49,6 +49,8 @@ function nextAction(g: GameState, now: number, openHatch: () => void, openCrate:
   if (u && u.status === 'open' && u.expiresAt > now)
     return { icon: 'alarm-light', color: C.orange, title: `Urgent: ${u.title}`, sub: `${u.criteria} · ${formatDuration(u.expiresAt - now)} left`, cta: 'Done', run: () => confirmUrgent(g) };
   if (!crateDay(g, t).claimed) return { icon: 'treasure-chest', color: C.gold, title: 'Supply crate ready', sub: `Day ${crateDay(g, t).day} of 7 — free loot`, cta: 'Open', run: openCrate };
+  if (!g.profile.planned)
+    return { icon: 'auto-fix', color: C.green, title: 'Personalize your plan', sub: '1 minute · the System fits your goals, time and energy', cta: 'Start', run: () => router.push('/plan') };
   if (cloudEnabled && !signedIn && g.player.level >= 2)
     return { icon: 'cloud-upload', color: C.cyan, title: 'Back up your progress', sub: 'Create a free account so your save syncs to every device', cta: 'Sign up', run: () => router.push('/settings') };
   if (isPenaltyActive(g)) return { icon: 'skull', color: C.red, title: 'Clear the Penalty Quest', sub: 'XP is halved until you do', cta: 'Go', run: () => router.navigate('/quests') };
