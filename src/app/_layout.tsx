@@ -17,6 +17,7 @@ import { useGame } from '@/store/game';
 import { AlertHost } from '@/ui/AlertHost';
 import { GameClock } from '@/ui/GameClock';
 import { Onboarding } from '@/ui/Onboarding';
+import { QuickLogSheet } from '@/ui/QuickLog';
 import { C } from '@/ui/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -53,6 +54,7 @@ export default function RootLayout() {
         <GameClock />
         <View style={{ flex: 1, backgroundColor: C.bg0 }}>
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg0 }, animation: 'fade' }} />
+          {onboarded ? <QuickLogSheet /> : null}
           {!onboarded ? <Onboarding /> : null}
           <AlertHost />
         </View>

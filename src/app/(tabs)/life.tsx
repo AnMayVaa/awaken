@@ -10,6 +10,7 @@ import { tierRank } from '@/game/questLibrary';
 import { readTodaySteps, stepsSupport } from '@/lib/steps';
 import { actions, useGame } from '@/store/game';
 import { Heatmap, Radar, Sparkline } from '@/ui/charts';
+import { DayLogsStrip, TrackerHub } from '@/ui/Trackers';
 import { Bar, Btn, Chip, Icon, Input, Panel, Pill, Row, Segment, Txt } from '@/ui/kit';
 import { Columns, Screen, useLayout } from '@/ui/Screen';
 import { SystemModal } from '@/ui/SystemModal';
@@ -136,6 +137,7 @@ function CheckinPanel() {
       ) : (
         <Input value={steps} onChangeText={(v) => setSteps(v.replace(/[^0-9]/g, ''))} placeholder="e.g. 6500" keyboardType="number-pad" />
       )}
+      <DayLogsStrip />
       <Input label="One good thing today (optional)" value={grat} onChangeText={setGrat} maxLength={160} />
       <Btn kind="solid" label={c?.savedAt ? 'Update check-in' : 'Save check-in'} icon="content-save" onPress={save} testID="save-checkin" />
     </Panel>
@@ -494,6 +496,7 @@ export default function LifeScreen() {
         {[
           <View key="l">
             {scorePanel}
+            <TrackerHub />
             <CheckinPanel key={today} />
             {trendsPanel}
             {reviewPanel}

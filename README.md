@@ -53,7 +53,7 @@ npx expo start            # same Wi-Fi: scan the QR code with the iPhone Camera
 
 | | |
 | --- | --- |
-| **Side Quests (adaptive)** | A Quest Director picks 2–6 quests a day from a **341-quest library**. It uses your focus areas, Life Wheel and yesterday's data (sleep, screen time, steps, mood). Difficulty adapts per area to keep you near **80% success**. Every quest has a concrete *Done when* criterion. Some are auto-verified from steps, workouts, focus time and check-ins. |
+| **Side Quests (adaptive)** | A Quest Director picks 2–6 quests a day from a **357-quest library**. It uses your focus areas, Life Wheel and yesterday's data (sleep, screen time, steps, mood). Difficulty adapts per area to keep you near **80% success**. Every quest has a concrete *Done when* criterion. Some are auto-verified from steps, workouts, focus time and check-ins. |
 | **AI quests (Gemini)** | One tap asks Gemini (through your private Supabase function) for personal quests — "exam on Friday", "feeling lonely"… Sensitive data stays on the device. |
 | **Main Quests & Campaigns** | Long-term goals with milestones, WOOP plans and tracked numbers. There are 12 ready-made campaigns: Couch to 5K, Sleep Reset, Emergency Fund, Reconnect 30, Digital Detox 30, Career Launch… |
 | **Break Free (recovery mode)** | Quit porn, doom-scrolling, gaming, sugar, smoking, alcohol, gambling or procrastination. A clean-time streak resets on a slip, but **total clean days are kept** and a slip costs no HP. **Urge SOS** walks you through breathing, your why, your plan and a replacement action. A trigger log shows your riskiest times, and milestones come at 1 → 365 days. |
@@ -64,9 +64,24 @@ npx expo start            # same Wi-Fi: scan the QR code with the iPhone Camera
 | **Training & Dungeons** | 14 exercises that raise stats. Focus dungeons last 15–120 minutes, and strict mode collapses the dungeon if you leave the app. |
 | **Weekly boss · Guild bots · Shop** | Every XP damages the boss. AI rivals level up daily. Spend gold on items or your own real-life rewards. |
 
+### Life trackers (v3) — one **+** button logs anything in ≤ 3 taps
+
+| | |
+| --- | --- |
+| **Quick Log (+)** | The round button in the tab bar: water, meal, spending, Top 3, skill time, reach out, workout, Urge SOS, check-in. |
+| **Fuel (nutrition)** | Tap what was on the plate (protein, veggies, fruit, grains, home-cooked, fast food, sugary, fried) — no calorie counting. Water tracker. 7-day Fuel score. Veggies deal bonus boss damage, protein on training days feeds STR, water restores HP. |
+| **Treasury (money)** | Log spending in ฿ with need/want, monthly budgets per category, no-spend days, **Impulse Shield** (hold a want for 24 h — skipping counts as an urge resisted) and savings goals that pay gold at 25/50/75/100 %. |
+| **Top 3** | Morning plan: three priorities, bonus when all are done. |
+| **Skills** | Log practice minutes; tiers Novice → Apprentice (5 h) → Adept (20 h) → Expert → Master → Grandmaster. |
+| **People** | Reminders to contact family and friends on your rhythm; contacts train CHA. |
+| **Insights** | Honest same-person comparisons from your own data (“on days you train, mood is +0.8 higher”) once there is a week of logs. |
+| **Seasons** | 66-day seasons with a 10-tier reward track; unclaimed rewards are auto-claimed. |
+
+All trackers feed side-quest auto-verification (water, veg/fruit, protein, fast food, wants spending, no-spend, skill minutes, contacts, Top 3) and the AI Quest Director.
+
 ### Gimmicks (all optional, none punishing)
 
-**Next Action** card (always tells you the one thing to do now) · **Daily Supply Crate** with a 7-day login calendar · **Today's Buff** (+25% XP in one area) · **Combos** up to ×1.25 · **Critical clears** ×2 · **Loot drops** · **Urgent Quests** (60-minute bonus quests, no penalty if missed) · **Weekly Challenges** · **Companion** that hatches and evolves as you level (owl, cat, hound, turtle, penguin, unicorn) · Lucky Charm & Reroll Token items · streak flames · particle bursts on level-up · shareable **Hunter License** · tip of the day · 46 achievements & titles.
+**Next Action** card (always tells you the one thing to do now) · **Daily Supply Crate** with a 7-day login calendar · **Today's Buff** (+25% XP in one area) · **Combos** up to ×1.25 · **Critical clears** ×2 · **Loot drops** · **Urgent Quests** (60-minute bonus quests, no penalty if missed) · **Weekly Challenges** · **Companion** that hatches and evolves as you level (owl, cat, hound, turtle, penguin, unicorn) · Lucky Charm & Reroll Token items · streak flames · particle bursts on level-up · shareable **Hunter License** · tip of the day · 52 achievements & titles.
 
 📚 **Why it's built this way:** [docs/RESEARCH.md](docs/RESEARCH.md) — evidence and sources for every system.
 
@@ -88,7 +103,8 @@ npm run build:web  # static PWA in dist/
 ```
 src/
   app/            screens (Expo Router) — (tabs)/ Status, Quests, 66 Days, Train, Dungeon + shop, guild, achievements, records, settings
-  game/           pure game logic: engine (XP, ranks, rollover, penalties, boss), achievements, bots, constants
+  game/           pure game logic: engine (XP, ranks, rollover, penalties, boss), director, quest library,
+                  tracking (v3 selectors, insights) + life3 (v3 actions), achievements, bots, constants
   store/          zustand stores (persisted save + System alert queue)
   lib/            Supabase client + sync, notifications, haptics
   ui/             holographic UI kit (panels, bars, alerts, tab bar, onboarding)

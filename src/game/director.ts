@@ -9,6 +9,7 @@
  */
 import { AREA_IDS, type AreaId } from './areas';
 import { addDays, diffDays, weekId } from './date';
+import { contactsOn, foodCounts, planDoneOn, skillMinutesOn, spentOn } from './tracking';
 import { QUEST_LIBRARY, QUEST_MAP, SIDE_REWARDS, type QuestMetric, type QuestTemplate } from './questLibrary';
 import { rand01, uid } from './rng';
 import type { AreaProgress, BoardQuest, DayActivity, GameState, LifeProfile } from './types';
@@ -177,6 +178,17 @@ export function metricValue(s: GameState, key: QuestMetric['key'], date: string)
   if (key === 'review') return s.reviews.some((r) => r.week === weekId(date)) ? 1 : 0;
   if (key === 'milestone') return s.activity[date]?.milestones ?? 0;
   if (key === 'focus') return s.activity[date]?.focusMin ?? 0;
+  if (key === 'water') return s.track.water[date] ?? 0;
+  if (key === 'plants' || key === 'protein' || key === 'meals') return foodCounts(s, date)[key];
+  if (key === 'junk') {
+    const f = foodCounts(s, date);
+    return f.meals >= 2 ? f.junk : undefined; // only judge a day with real logs
+  }
+  if (key === 'wants') return s.track.expenses.some((e) => e.date === date) || s.track.noSpend[date] ? spentOn(s, date, true) : undefined;
+  if (key === 'nospend') return s.track.noSpend[date] ? 1 : 0;
+  if (key === 'skill') return skillMinutesOn(s, date);
+  if (key === 'contact') return contactsOn(s, date);
+  if (key === 'plan') return planDoneOn(s, date);
   if (key.startsWith('w:')) {
     const id = key.slice(2);
     return s.workouts.filter((w) => w.date === date && w.exerciseId === id).reduce((a, w) => a + w.amount, 0);
@@ -205,6 +217,16 @@ export const METRIC_LABEL: Record<string, string> = {
   checkin: 'check-in',
   review: 'review',
   milestone: 'milestone',
+  water: 'glasses',
+  plants: 'veg/fruit',
+  protein: 'protein meals',
+  junk: 'fast-food meals',
+  meals: 'meals logged',
+  wants: '฿ on wants',
+  nospend: 'no-spend day',
+  skill: 'skill min',
+  contact: 'people contacted',
+  plan: 'top-3 done',
 };
 
 /* ------------------------------------------------------------------ */

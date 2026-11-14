@@ -18,11 +18,13 @@ import {
   weeklyChallenges,
   weeklyReward,
 } from '@/game/fun';
+import { fmtMoney, peopleDue, seasonInfo, wishReady } from '@/game/tracking';
 import type { GameState } from '@/game/types';
 import { cloudEnabled } from '@/lib/supabase';
 import { useAuth } from '@/lib/sync';
 import { systemConfirm } from '@/store/alerts';
 import { actions, useGame } from '@/store/game';
+import { openQuickLog } from '@/store/ui';
 
 import { Bar, Btn, Icon, Input, Panel, Pill, Row, Txt } from './kit';
 import { SystemModal } from './SystemModal';
@@ -54,12 +56,22 @@ function nextAction(g: GameState, now: number, openHatch: () => void, openCrate:
   if (cloudEnabled && !signedIn && g.player.level >= 2)
     return { icon: 'cloud-upload', color: C.cyan, title: 'Back up your progress', sub: 'Create a free account so your save syncs to every device', cta: 'Sign up', run: () => router.push('/settings') };
   if (isPenaltyActive(g)) return { icon: 'skull', color: C.red, title: 'Clear the Penalty Quest', sub: 'XP is halved until you do', cta: 'Go', run: () => router.navigate('/quests') };
+  const hour = new Date(now).getHours();
+  if (!g.track.plans[t] && hour >= 5 && hour < 14)
+    return { icon: 'format-list-checks', color: C.gold, title: 'Plan your Top 3', sub: 'Three things that make today a win · 30 s', cta: 'Plan', run: () => openQuickLog('plan') };
+  const season = seasonInfo(g, t);
+  if (season.unclaimed.length)
+    return { icon: 'gift', color: C.orange, title: `Season ${season.n} reward ready`, sub: `Tier ${season.unclaimed[0] + 1} unlocked — claim it`, cta: 'Claim', run: () => router.push('/season') };
   if (!g.daily.completed) {
     const d = g.daily.tasks.filter((x) => x.progress >= x.target).length;
     return { icon: 'sword', color: C.cyan, title: 'Finish the Daily Quest', sub: `${d}/${g.daily.tasks.length} tasks done · resets at midnight`, cta: 'Go', run: () => router.navigate('/quests') };
   }
   const open = g.board.quests.find((q) => q.status === 'open');
   if (open) return { icon: 'map-marker-star', color: AREA_MAP[open.area].color, title: open.title, sub: `Side Quest · ${open.criteria}`, cta: 'Go', run: () => router.navigate('/quests') };
+  const wish = g.track.wishlist.find((w) => wishReady(w, now));
+  if (wish) return { icon: 'shield-half-full', color: C.purple, title: `Still want “${wish.name}”?`, sub: `24 h are up · ${fmtMoney(wish.price)} — skip it to keep the money`, cta: 'Decide', run: () => router.push('/money') };
+  const due = peopleDue(g, t);
+  if (due.length) return { icon: 'account-heart', color: C.pink, title: `Say hi to ${due[0].p.name}`, sub: due[0].p.lastContact ? `${due[0].since} days since you last talked` : 'A two-line message counts', cta: 'Done', run: () => openQuickLog('people') };
   if (!g.checkins[t]?.savedAt) return { icon: 'clipboard-pulse', color: C.gold, title: 'Daily check-in', sub: '30 seconds · steers tomorrow’s quests', cta: 'Go', run: () => router.navigate('/life') };
   if (wheelDue(g, t) || wellbeingDue(g, t)) return { icon: 'chart-donut', color: C.purple, title: 'Measure your life', sub: 'Life Wheel / wellbeing check is due', cta: 'Go', run: () => router.navigate('/life') };
   return { icon: 'check-decagram', color: C.green, title: 'All clear for today', sub: 'Rest, or enter a Dungeon for bonus XP', cta: 'Dungeon', run: () => router.navigate('/train?view=dungeon') };

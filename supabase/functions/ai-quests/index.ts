@@ -35,7 +35,7 @@ Rules for every quest:
 - "criteria" is an objective, observable finish line (numbers, counts, a concrete artefact or event). Start it with a verb. No "try to".
 - Safe, legal and kind: no extreme diets, fasting, dangerous exercise, medical, legal or financial product advice, and no shaming.
 - "tier" 1–5 = difficulty. Match the player's area tier (mostly at level, at most one stretch quest +1).
-- Prefer the player's focus areas and low Life Wheel areas; respond to yesterday's data (short sleep → recovery/health, high screen time → digital balance, low steps → movement).
+- Prefer the player's focus areas and low Life Wheel areas; respond to yesterday's data (short sleep → recovery/health, high screen time → digital balance, low steps → movement, few veg/fruit or lots of fast food → one simple food quest, over-budget categories → one gentle money quest, listed skills → a practice quest, peopleDue > 0 → a reach-out quest).
 - Spread quests over at least 2 different areas. Do not repeat titles listed as recent or already on the board.
 - If recovery goals are listed, you may add ONE supportive quest phrased discreetly (e.g. "phone out of the bedroom"), never explicit.
 - "why" is one short, honest sentence on the benefit. Only mention research you are confident about.

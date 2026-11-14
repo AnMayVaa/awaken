@@ -14,6 +14,8 @@ export interface AchievementDef {
   progress?: (s: GameState) => number;
 }
 
+const hydratedDays = (s: GameState) => Object.values(s.track?.water ?? {}).filter((v) => v >= (s.track?.waterGoal ?? 8)).length;
+const noSpendDays = (s: GameState) => Object.values(s.track?.noSpend ?? {}).filter(Boolean).length;
 const ratio = (v: number, max: number) => Math.min(1, v / max);
 const total = (s: GameState, id: string) => s.counters.totals[id] ?? 0;
 function areasLastWeek(s: GameState) {
@@ -78,6 +80,13 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'urgent_5', name: 'First Responder', desc: 'Clear 5 Urgent Quests in time.', icon: 'alarm-light', title: 'First Responder', xp: 120, gold: 100, check: (s) => (s.counters.urgentDone ?? 0) >= 5, progress: (s) => ratio(s.counters.urgentDone ?? 0, 5) },
   { id: 'tamer', name: 'Tamer', desc: 'Hatch your companion.', icon: 'egg-easter', xp: 40, gold: 40, check: (s) => !!s.fun?.companion?.species },
   { id: 'urge_10', name: 'Wave Rider', desc: 'Resist 10 urges with the SOS tool.', icon: 'waves', title: 'Wave Rider', xp: 150, gold: 100, check: (s) => s.counters.urgesResisted >= 10, progress: (s) => ratio(s.counters.urgesResisted, 10) },
+  // v3 life trackers
+  { id: 'fuel_30', name: 'Well Fuelled', desc: 'Log 30 meals in Fuel.', icon: 'food-apple', title: 'Well Fuelled', xp: 120, gold: 80, check: (s) => (s.track?.meals.length ?? 0) >= 30, progress: (s) => ratio(s.track?.meals.length ?? 0, 30) },
+  { id: 'hydro_7', name: 'Hydro Hunter', desc: 'Reach your water goal on 7 days.', icon: 'cup-water', xp: 100, gold: 60, check: (s) => hydratedDays(s) >= 7, progress: (s) => ratio(hydratedDays(s), 7) },
+  { id: 'nospend_5', name: 'Iron Wallet', desc: 'Have 5 no-spend days.', icon: 'wallet', title: 'Iron Wallet', xp: 120, gold: 100, check: (s) => noSpendDays(s) >= 5, progress: (s) => ratio(noSpendDays(s), 5) },
+  { id: 'saver', name: 'Treasurer', desc: 'Complete a savings goal.', icon: 'piggy-bank', title: 'Treasurer', xp: 200, gold: 150, check: (s) => !!s.track?.goals.some((g) => g.doneAt) },
+  { id: 'skill_adept', name: 'Dedicated', desc: 'Reach Adept (20 h) in any skill.', icon: 'star-circle', title: 'Adept', xp: 250, gold: 150, check: (s) => !!s.track?.skills.some((k) => k.minutes >= 1200), progress: (s) => ratio(Math.max(0, ...(s.track?.skills.map((k) => k.minutes) ?? [0])), 1200) },
+  { id: 'top3_7', name: 'Priority Master', desc: 'Clear your Top 3 on 7 days.', icon: 'format-list-checks', title: 'Prioritiser', xp: 150, gold: 100, check: (s) => (s.counters.totals.top3 ?? 0) >= 7, progress: (s) => ratio(s.counters.totals.top3 ?? 0, 7) },
 ];
 
 export const ACHIEVEMENT_MAP: Record<string, AchievementDef> = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));

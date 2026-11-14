@@ -12,7 +12,10 @@ import type { AreaId } from './areas';
 import { AREA_MAP } from './areas';
 import type { StatKey } from './types';
 
-export type MetricKey = 'steps' | 'sleep' | 'screen' | 'focus' | 'checkin' | 'review' | 'milestone' | `w:${string}`;
+export type MetricKey =
+  | 'steps' | 'sleep' | 'screen' | 'focus' | 'checkin' | 'review' | 'milestone'
+  | 'water' | 'plants' | 'protein' | 'junk' | 'meals' | 'wants' | 'nospend' | 'skill' | 'contact' | 'plan'
+  | `w:${string}`;
 
 export interface QuestMetric {
   key: MetricKey;
@@ -100,8 +103,8 @@ const LIB: Record<AreaId, Row[]> = {
     ['Sleep 7+ hours', 'Your check-in shows at least 7 hours of sleep last night', 2, 0, { m: 'sleep', v: 7, why: WHY.sleep }],
     ['Sleep 8 hours', 'Your check-in shows at least 8 hours of sleep last night', 3, 0, { m: 'sleep', v: 8, why: WHY.sleep }],
     ['Lights out by {n}', 'In bed with the lights off before {n}', ['00:00', '23:30', '23:00', '22:30'], 0, { t0: 1 }],
-    ['Hydration', 'Drink {n} glasses of water (about 250 ml each)', [6, 8, 10], 2],
-    ['Eat the rainbow', 'Eat {n} portions of fruit and vegetables', [3, 5, 7], 10],
+    ['Hydration', 'Log {n} glasses of water in Fuel (about 250 ml each)', [6, 8, 10], 2, { m: 'water' }],
+    ['Eat the rainbow', 'Log {n} meals with veggies or fruit in Fuel', [2, 3, 4], 10, { m: 'plants' }],
     ['No sugary drinks', 'Drink no soda, sweet tea, bubble tea or energy drinks today', 2],
     ['Home-cooked meal', 'Cook one meal at home with a protein and a vegetable', 2, 40],
     ['Protein breakfast', 'Eat a breakfast with a clear protein source', 1, 10],
@@ -120,6 +123,9 @@ const LIB: Record<AreaId, Row[]> = {
     ['Stretch before bed', 'Do 5 minutes of gentle stretching before sleeping', 1, 5],
     ['Plan tomorrow’s food', 'Write what you will eat tomorrow, including snacks', 1, 10],
     ['Fiber up', 'Include whole grains or beans in two meals today', 2],
+    ['Fuel log', 'Log {n} meals in Fuel today — awareness first, no calorie counting', [2, 3], 3, { m: 'meals', t0: 1 }],
+    ['Protein ×2', 'Log 2 meals with a clear protein source', 2, 0, { m: 'protein', v: 2, stat: 'STR' }],
+    ['Fast-food free', 'Log at least 2 meals today with no fast food, fried food or sugary drinks', 2, 0, { m: 'junk', op: 'lte', v: 0, stat: 'WIL' }],
     ['Sun safety & skin', 'Wash your face and use sunscreen/moisturiser morning and night', 1, 5],
     ['Sleep sanctuary', 'Make your bedroom darker, cooler and quieter tonight', 2, 20],
   ],
@@ -151,6 +157,7 @@ const LIB: Record<AreaId, Row[]> = {
     ['Reframe a setback', 'Write one setback as “What can I learn?” instead of “What’s wrong with me?”', 2, 10],
   ],
   learning: [
+    ['Skill session', 'Log {n} minutes of practice on one skill in Skills', [15, 30, 45, 60, 90], 0, { m: 'skill', t0: 1, mpn: 1 }],
     ['Read {n} pages', 'Read {n} pages of a book (log Reading in Train if you like)', [5, 10, 20, 40, 60], 0, { mpn: 1.5 }],
     ['Study dungeon', 'Clear a Dungeon of at least {n} minutes on study', [15, 25, 45, 60, 90], 0, { m: 'focus', mpn: 1 }],
     ['Active recall', 'Close your notes, write all you remember on a topic, then check gaps', 2, 20, { why: WHY.activeRecall }],
@@ -175,6 +182,7 @@ const LIB: Record<AreaId, Row[]> = {
     ['Feynman notes', 'Explain a topic in plain words on one page and mark where you get stuck', 3, 30],
   ],
   career: [
+    ['Top 3 cleared', 'Finish all 3 of today’s Top-3 tasks from your morning plan', 2, 0, { m: 'plan', v: 3 }],
     ['Deep work', 'Clear a Dungeon of at least {n} minutes on your most important work', [25, 45, 60, 90, 120], 0, { m: 'focus', mpn: 1 }],
     ['Top 3 first', 'Before starting work, write your 3 most important tasks', 1, 5],
     ['Eat the frog', 'Finish your hardest task before noon', 3],
@@ -201,7 +209,7 @@ const LIB: Record<AreaId, Row[]> = {
   ],
   money: [
     ['Track spending', 'Write down every purchase you make today', 1, 5],
-    ['No-spend day', 'Spend nothing except essentials (bills, groceries, transport)', 2],
+    ['No-spend day', 'Spend nothing except essentials, then mark it in Treasury', 2, 0, { m: 'nospend' }],
     ['Pay yourself first', 'Move any amount into savings today', 2, 5],
     ['Money snapshot', 'Check all balances and write down your net worth', 1, 10],
     ['Cancel a subscription', 'Cancel one subscription you barely use', 2, 10],
@@ -219,9 +227,12 @@ const LIB: Record<AreaId, Row[]> = {
     ['Fun-money cap', 'Use only a fixed amount for fun spending today', 2],
     ['Income ideas', 'Brainstorm 5 ways to earn more and pick one to test', 3, 30, { stat: 'INT' }],
     ['Set a money goal', 'Write one savings goal with an amount and a date', 2, 10],
+    ['Wants under ฿{n}', 'Log your spending and keep non-essential spending at or under ฿{n} today', [300, 150, 50], 2, { m: 'wants', op: 'lte', t0: 1 }],
     ['Receipt review', 'Review last week’s purchases and mark which ones were worth it', 2, 15],
   ],
   relationships: [
+    ['Reach out', 'Message or call someone from your People list and mark it', 1, 5, { m: 'contact', v: 1 }],
+    ['Reconnect ×{n}', 'Contact {n} people from your People list today', [2, 3], 15, { m: 'contact', t0: 2, mpn: 5 }],
     ['Turn toward bids', 'Notice and warmly respond to 5 small bids for attention today', 2, 0, { why: WHY.gottman }],
     ['Quality time', 'Spend {n} phone-free minutes with someone you love', [15, 30, 60, 120], 0, { mpn: 1 }],
     ['Call family', 'Call (not text) a family member', 1, 15],

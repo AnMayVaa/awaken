@@ -356,3 +356,127 @@ console.log('\nALL GIMMICK TESTS PASSED');
   console.log('✓ plan builder: light plan', light.dailyExercises.join('+'), '| heavy load', heavy.questLoad, '| gentle mode safe');
 }
 console.log('\nALL PLAN TESTS PASSED');
+
+
+// ================= v3 life trackers =================
+import * as L from '../src/game/life3';
+import { foodCounts, insightDataDays, insights, moneyScore, noSpendStreak, nutritionScore, peopleDue, seasonInfo, SEASON_DAYS, skillTier } from '../src/game/tracking';
+import { metricValue } from '../src/game/director';
+{
+  // Fuel: meals, synergies, water, metrics
+  const s = fresh(); ev = [];
+  const bossHp = s.boss.hp;
+  E.logWorkout(s, ev, 'pushups', 10);
+  const strXp = s.player.statXp.STR + s.player.stats.STR * 1000;
+  L.logMeal(s, ev, { tags: ['protein', 'veg'], slot: 'lunch' });
+  assert.ok(s.boss.hp < bossHp - 15, 'veggies damage the boss');
+  assert.ok(s.player.statXp.STR + s.player.stats.STR * 1000 > strXp, 'protein on training day feeds STR');
+  L.logMeal(s, ev, { tags: ['veg', 'fruit'], slot: 'dinner' });
+  L.logMeal(s, ev, { tags: ['junk'], slot: 'snack' });
+  const f = foodCounts(s, t);
+  assert.deepEqual([f.meals, f.plants, f.protein, f.junk], [3, 3, 1, 1]);
+  assert.equal(metricValue(s, 'plants', t), 3);
+  assert.equal(metricValue(s, 'junk', t), 1);
+  s.player.hp = 50;
+  L.addWater(s, ev, 8);
+  assert.equal(s.player.hp, 66, 'water regenerates HP');
+  assert.ok(ev.some((e) => e.title === 'HYDRATED'));
+  const ns = nutritionScore(s, t)!;
+  assert.ok(ns > 50 && ns <= 100, 'nutrition score ' + ns);
+  // reward cap: 5th+ meal gives no XP
+  for (let i = 0; i < 3; i++) L.logMeal(s, ev, { tags: ['grain'] });
+  const xp0 = s.player.totalXp; L.logMeal(s, ev, { tags: ['grain'] });
+  assert.equal(s.player.totalXp, xp0, 'meal rewards are capped per day');
+  console.log('✓ fuel: synergies, water HP, caps · score', ns);
+}
+{
+  // Treasury: expenses, budgets, no-spend, impulse shield, savings goals
+  const s = fresh(); ev = [];
+  assert.equal(metricValue(s, 'wants', t), undefined, 'no data → wants metric unknown');
+  assert.ok(L.declareNoSpend(s, ev));
+  assert.equal(noSpendStreak(s, t), 1);
+  L.setBudget(s, 'fun', 500);
+  L.logExpense(s, ev, { amount: 120, cat: 'food' });
+  assert.equal(s.track.noSpend[t], true, 'essential spending keeps a no-spend day');
+  L.logExpense(s, ev, { amount: 600, cat: 'fun' });
+  assert.equal(s.track.noSpend[t], undefined, 'a want breaks the no-spend day');
+  assert.ok(ev.some((e) => e.title === 'BUDGET EXCEEDED'));
+  assert.equal(metricValue(s, 'wants', t), 600);
+  ev = [];
+  L.addWish(s, ev, 'Headphones', 2500);
+  const w = s.track.wishlist[0];
+  const resisted = s.counters.urgesResisted;
+  L.decideWish(s, ev, w.id, false);
+  assert.equal(s.track.savedByWaiting, 2500);
+  assert.equal(s.counters.urgesResisted, resisted + 1);
+  L.addGoal(s, 'Emergency fund', 1000);
+  const g = s.track.goals[0];
+  const gold0 = s.player.gold;
+  L.depositGoal(s, ev, g.id, 600);
+  assert.equal(g.marks, 2);
+  assert.ok(s.player.gold > gold0);
+  L.depositGoal(s, ev, g.id, 400);
+  assert.ok(g.doneAt, 'goal complete');
+  assert.ok(ev.some((e) => e.title === 'SAVINGS GOAL COMPLETE'));
+  const ms = moneyScore(s, t)!;
+  assert.ok(ms >= 0 && ms <= 100);
+  console.log('✓ treasury: budgets, no-spend, impulse shield, goals · score', ms);
+}
+{
+  // Skills, people, Top 3, seasons
+  const s = fresh(); ev = [];
+  L.addSkill(s, 'Guitar', 'guitar-acoustic', 'SEN');
+  const sk = s.track.skills[0];
+  L.logSkill(s, ev, sk.id, 300);
+  assert.equal(skillTier(sk.minutes).name, 'Apprentice');
+  assert.ok(ev.some((e) => e.title === 'SKILL TIER UP'));
+  assert.equal(metricValue(s, 'skill', t), 300);
+
+  L.addPerson(s, { name: 'Mom', relation: 'family', everyDays: 7 });
+  assert.equal(peopleDue(s, t).length, 1, 'new person is due right away');
+  L.contactPerson(s, ev, s.track.people[0].id);
+  assert.equal(peopleDue(s, t).length, 0);
+  assert.equal(metricValue(s, 'contact', t), 1);
+  assert.equal(L.contactPerson(s, ev, s.track.people[0].id), false, 'once per day');
+
+  L.setPlan(s, ['Finish lab report', 'Gym', 'Call bank', 'extra ignored']);
+  assert.equal(s.track.plans[t].items.length, 3);
+  [0, 1, 2].forEach((i) => L.togglePlanItem(s, ev, i));
+  assert.ok(s.track.plans[t].bonus);
+  assert.equal(metricValue(s, 'plan', t), 3);
+
+  s.player.totalXp += 800;
+  const si = seasonInfo(s, t);
+  assert.equal(si.reached >= 2, true);
+  assert.ok(L.claimSeasonTier(s, ev, 1));
+  assert.equal(s.inventory.hp_potion >= 1, true);
+  assert.equal(L.claimSeasonTier(s, ev, 1), false, 'no double claim');
+  // season rolls after 66 days and auto-claims tier 0
+  s.track.season.startDate = addDays(t, -SEASON_DAYS);
+  ev = [];
+  assert.ok(L.trackTick(s, ev));
+  assert.equal(s.track.season.n, 2);
+  assert.ok(ev.some((e) => e.title === 'SEASON 1 COMPLETE'));
+  console.log('✓ skills, people, top-3, seasons');
+}
+{
+  // Insights from 3 weeks of synthetic data
+  const s = fresh();
+  for (let i = 1; i <= 21; i++) {
+    const d = addDays(t, -i);
+    const trained = i % 2 === 0;
+    if (trained) s.workouts.push({ id: 'w' + i, ts: 0, date: d, exerciseId: 'pushups', amount: 10, xp: 5 });
+    s.checkins[d] = { date: d, mood: trained ? 4 : 3, energy: 3, sleepHours: trained ? 7.5 : 6.5, steps: trained ? 8000 : 3000, savedAt: 1 };
+  }
+  assert.ok(insightDataDays(s, t) >= 7);
+  const cards = insights(s, t);
+  assert.ok(cards.some((c) => c.id === 'train-mood' && c.title.includes('↑')), 'training lifts mood');
+  assert.ok(cards.some((c) => c.id === 'sleep-mood'));
+  // migration of a v2 save adds track state
+  const old = JSON.parse(JSON.stringify(s)); delete old.track; old.version = 2;
+  const m = E.migrate(old);
+  assert.equal(m.version, 3);
+  assert.equal(m.track.season.xpStart, s.player.totalXp, 'season starts fresh for existing players');
+  console.log('✓ insights:', cards.map((c) => c.id).join(', '), '| v2 → v3 migration');
+}
+console.log('\nALL V3 TESTS PASSED');

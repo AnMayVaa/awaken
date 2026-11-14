@@ -7,6 +7,7 @@ import { BOSS_MAP, STAT_KEYS, STAT_META } from '@/game/constants';
 import { formatHM, weekEnd } from '@/game/date';
 import { lifeScore } from '@/game/director';
 import { cleanDays } from '@/game/recovery';
+import { foodCounts, seasonInfo } from '@/game/tracking';
 import { streakFlame } from '@/game/fun';
 import { combatPower, isPenaltyActive, maxHp, nextRank, playerClass, rankForLevel, statThreshold, xpToNext } from '@/game/engine';
 import { cloudEnabled } from '@/lib/supabase';
@@ -15,6 +16,7 @@ import { actions, useGame } from '@/store/game';
 import { Btn, Bar, Icon, Panel, Pill, RankBadge, Row, Stat, Txt } from '@/ui/kit';
 import { CompanionCard, DailyStrip, NextActionCard, shareLicense, UrgentBanner, WeeklyPanel } from '@/ui/Fun';
 import { InstallHint } from '@/ui/InstallHint';
+import { Top3Panel, TrackerHub } from '@/ui/Trackers';
 import { Columns, Screen, useLayout } from '@/ui/Screen';
 import { SystemModal } from '@/ui/SystemModal';
 import { C, F, textGlow, withAlpha } from '@/ui/theme';
@@ -58,6 +60,9 @@ export default function StatusScreen() {
   const dailyDone = g.daily.tasks.filter((t) => t.progress >= t.target).length;
   const boost = g.xpBoostUntil > now;
   const tileW = width < 380 ? '47%' : '31%';
+  const season = seasonInfo(g, g.board.date);
+  const food = foodCounts(g, g.board.date);
+  const water = g.track.water[g.board.date] ?? 0;
 
   const player = (
     <Panel
@@ -104,11 +109,13 @@ export default function StatusScreen() {
         <Stat label="Streak" value={g.counters.dailyStreak} color={streakFlame(g.counters.dailyStreak).color} icon="fire" />
         <Stat label="Life" value={ls.score ?? '—'} color={C.green} icon="star-four-points" />
       </View>
-      {nr ? (
-        <Txt v="tiny" center style={{ marginTop: 10 }}>
-          Next rank: {nr.rank}-Rank at level {nr.min}
+      <Pressable onPress={() => router.push('/season')} style={styles.seasonRow} testID="season-row">
+        <Icon name="flag-checkered" size={14} color={C.orange} />
+        <Txt v="tiny" style={{ flex: 1 }}>
+          Season {season.n} · day {season.day}/66 · tier {season.reached}/10{nr ? ` · ${nr.rank}-Rank at Lv ${nr.min}` : ''}
         </Txt>
-      ) : null}
+        {season.unclaimed.length ? <Pill text="CLAIM" color={C.orange} /> : <Icon name="chevron-right" size={16} color={C.muted} />}
+      </Pressable>
       {boost ? (
         <View style={[styles.boost]}>
           <Icon name="flask" size={16} color={C.purple} />
@@ -162,19 +169,21 @@ export default function StatusScreen() {
     { key: 'side', icon: 'map-marker-star', color: C.cyan, label: 'Side Quests', done: g.board.quests.length > 0 && sideDone >= g.board.quests.length, sub: `${sideDone}/${g.board.quests.length} cleared`, href: '/quests' },
     { key: 'habits', icon: 'calendar-check', color: C.cyan, label: 'Habits', done: habitsActive > 0 && habitsDone === habitsActive, sub: habitsActive ? `${habitsDone}/${habitsActive} checked in` : 'Start a 66-day challenge', href: '/habits' },
     ...(bestFree !== null
-      ? [{ key: 'free', icon: 'link-variant-off', color: C.green, label: 'Break Free', done: false, sub: `Best streak ${bestFree} day${bestFree === 1 ? '' : 's'} · Urge SOS ready`, href: '/habits?view=free' }]
+      ? [{ key: 'free', icon: 'link-variant-off', color: C.green, label: 'Break Free', optional: true, done: false, sub: `Best streak ${bestFree} day${bestFree === 1 ? '' : 's'} · Urge SOS ready`, href: '/habits?view=free' }]
       : []),
+    { key: 'fuel', icon: 'food-apple', color: C.green, label: 'Fuel', done: food.meals >= 2 && water >= g.track.waterGoal, sub: `${food.meals} meals · ${water}/${g.track.waterGoal} water`, href: '/fuel' },
     { key: 'checkin', icon: 'clipboard-pulse', color: C.gold, label: 'Life check-in', done: checkedIn, sub: checkedIn ? 'Done — steering tomorrow’s quests' : 'Mood, sleep, screen time · 30 s', href: '/life' },
-    { key: 'dungeon', icon: 'gate', color: C.purple, label: 'Focus Dungeon', done: false, sub: g.dungeon ? `In progress · ${formatHM(g.dungeon.endsAt - now)} left` : `${g.counters.dungeonsCleared} cleared · optional`, href: '/train?view=dungeon' },
+    { key: 'dungeon', icon: 'gate', color: C.purple, label: 'Focus Dungeon', optional: true, done: !!g.activity[g.board.date]?.focusMin, sub: g.dungeon ? `In progress · ${formatHM(g.dungeon.endsAt - now)} left` : `${g.counters.dungeonsCleared} cleared · optional`, href: '/train?view=dungeon' },
   ];
-  const todayDone = todayItems.filter((t) => t.done).length;
+  const core = todayItems.filter((t) => !('optional' in t && t.optional));
+  const todayDone = core.filter((t) => t.done).length;
   const todayPanel = (
     <Panel
       key="today"
       title="Today"
       icon="calendar-today"
       color={penalty ? C.red : C.cyan}
-      right={<Txt v="num" color={todayDone === todayItems.length ? C.green : C.textDim} style={{ fontSize: 13 }}>{`${todayDone}/${todayItems.length}`}</Txt>}>
+      right={<Txt v="num" color={todayDone === core.length ? C.green : C.textDim} style={{ fontSize: 13 }}>{`${todayDone}/${core.length}`}</Txt>}>
       {todayItems.map((t, i) => (
         <Pressable
           key={t.key}
@@ -312,10 +321,12 @@ export default function StatusScreen() {
         {[
           <View key="l">
             {player}
+            <Top3Panel />
             {todayPanel}
           </View>,
           <View key="r">
             {stats}
+            <TrackerHub />
             <CompanionCard />
             <WeeklyPanel />
             {bossPanel}
@@ -383,6 +394,7 @@ export default function StatusScreen() {
 const styles = StyleSheet.create({
   statRow: { flexDirection: 'row', marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: C.lineDim },
   statLine: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(60,200,255,0.06)' },
+  seasonRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.lineDim },
   abilityGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   abilityCell: { flexGrow: 1, flexBasis: '45%', borderWidth: 1, borderRadius: 3, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: 'rgba(255,255,255,0.015)' },
   miniTrack: { height: 3, backgroundColor: 'rgba(255,255,255,0.06)', marginTop: 5, borderRadius: 2, overflow: 'hidden' },

@@ -3,10 +3,11 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import * as E from '@/game/engine';
+import * as L from '@/game/life3';
 import { generateBoard } from '@/game/director';
 import type { PlanProposal } from '@/game/plan';
 import { RECOVERY_MAP } from '@/game/recovery';
-import type { AreaId, Bot, CustomQuest, CustomReward, DailyCheckin, GameEvent, GameState, Habit, ItemId, LifeProfile, MainQuest, Rank, RecoveryCategory, RecoveryTrack, Settings, StatKey, WeeklyReview } from '@/game/types';
+import type { AreaId, Bot, MoneyCat, CustomQuest, CustomReward, DailyCheckin, GameEvent, GameState, Habit, ItemId, LifeProfile, MainQuest, Rank, RecoveryCategory, RecoveryTrack, Settings, StatKey, WeeklyReview } from '@/game/types';
 import { setHapticsEnabled } from '@/lib/haptics';
 
 import { useAlerts } from './alerts';
@@ -62,8 +63,40 @@ export function replaceGame(g: GameState) {
 
 export const game = () => useGame.getState().game;
 
+export const life = {
+  logMeal: (m: Parameters<typeof L.logMeal>[2]) => act((s, ev) => L.logMeal(s, ev, m)),
+  deleteMeal: (id: string) => act((s) => L.deleteMeal(s, id)),
+  water: (delta: number) => act((s, ev) => L.addWater(s, ev, delta)),
+  waterGoal: (g: number) => act((s) => L.setWaterGoal(s, g)),
+  logExpense: (x: Parameters<typeof L.logExpense>[2]) => act((s, ev) => L.logExpense(s, ev, x)),
+  deleteExpense: (id: string) => act((s) => L.deleteExpense(s, id)),
+  setBudget: (cat: MoneyCat, amount: number) => act((s) => L.setBudget(s, cat, amount)),
+  noSpend: () => act((s, ev) => L.declareNoSpend(s, ev)),
+  addWish: (name: string, price: number) => act((s, ev) => L.addWish(s, ev, name, price)),
+  decideWish: (id: string, buy: boolean) => act((s, ev) => L.decideWish(s, ev, id, buy)),
+  deleteWish: (id: string) => act((s) => L.deleteWish(s, id)),
+  addGoal: (name: string, target: number, deadline?: string) => act((s) => L.addGoal(s, name, target, deadline)),
+  deposit: (id: string, amount: number) => act((s, ev) => L.depositGoal(s, ev, id, amount)),
+  deleteGoal: (id: string) => act((s) => L.deleteGoal(s, id)),
+  addSkill: (name: string, icon: string, stat: StatKey) => act((s) => L.addSkill(s, name, icon, stat)),
+  logSkill: (id: string, min: number) => act((s, ev) => L.logSkill(s, ev, id, min)),
+  deleteSkill: (id: string) => act((s) => L.deleteSkill(s, id)),
+  addPerson: (p: Parameters<typeof L.addPerson>[1]) => act((s) => L.addPerson(s, p)),
+  updatePerson: (id: string, patch: Parameters<typeof L.updatePerson>[2]) => act((s) => L.updatePerson(s, id, patch)),
+  contact: (id: string) => act((s, ev) => L.contactPerson(s, ev, id)),
+  deletePerson: (id: string) => act((s) => L.deletePerson(s, id)),
+  setPlan: (texts: string[]) => act((s) => L.setPlan(s, texts)),
+  togglePlan: (i: number) => act((s, ev) => L.togglePlanItem(s, ev, i)),
+  claimSeason: (i: number) => act((s, ev) => L.claimSeasonTier(s, ev, i)),
+};
+
 export const actions = {
-  tick: () => act((s, ev) => E.rollover(s, ev)),
+  tick: () =>
+    act((s, ev) => {
+      const a = E.rollover(s, ev);
+      const b = L.trackTick(s, ev);
+      return a || b;
+    }),
   appState: (st: 'active' | 'background' | 'inactive') => act((s, ev) => E.dungeonAppState(s, ev, st)),
 
   onboard: (name: string, settings: Partial<Settings>, extra: { focusAreas?: AreaId[]; recovery?: RecoveryCategory[] } = {}) =>

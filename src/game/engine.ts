@@ -26,6 +26,7 @@ import { CAMPAIGN_MAP } from './campaigns';
 import { adapt, boardQuestFrom, DAILY_REROLLS, defaultAreas, defaultProfile, generateBoard, MAX_BOARD, metricMet, pickForArea, sideReward } from './director';
 import type { PlanProposal } from './plan';
 import { QUEST_MAP } from './questLibrary';
+import { defaultTrack } from './tracking';
 import { comboMult, crateDay, CRATE_DAYS, critChance, dailyBuff, dropChance, rollDrop, URGENT_MINUTES, URGENT_POOL, weeklyChallenges, weeklyReward } from './fun';
 import { bestDays, cleanDays, cleanMs, DAY_MS, milestoneReward, RECOVERY_MAP, RECOVERY_MILESTONES } from './recovery';
 import type {
@@ -53,11 +54,11 @@ import type {
   Tone,
 } from './types';
 
-export const STATE_VERSION = 2;
+export const STATE_VERSION = 3;
 const MAX_LOGS = 60;
 const MAX_WORKOUTS = 400;
 
-type Source = 'workout' | 'cardio' | 'mind' | 'dungeon' | 'quest' | 'daily' | 'habit' | 'penalty' | 'boss' | 'achievement' | 'life';
+export type Source = 'workout' | 'cardio' | 'mind' | 'dungeon' | 'quest' | 'daily' | 'habit' | 'penalty' | 'boss' | 'achievement' | 'life';
 
 /* ------------------------------------------------------------------ */
 /* Formulas                                                            */
@@ -253,6 +254,7 @@ export function createInitialState(name = 'Player', settings?: Partial<Settings>
     reviews: [],
     activity: {},
     fun: defaultFun(),
+    track: defaultTrack(t),
   };
 }
 
@@ -292,6 +294,7 @@ export function migrate(raw: Partial<GameState> | null | undefined): GameState {
     reviews: raw.reviews ?? [],
     activity: raw.activity ?? {},
     fun: { ...defaultFun(), ...raw.fun, companion: { ...defaultFun().companion, ...raw.fun?.companion } },
+    track: { ...defaultTrack(raw.lastDate ?? base.lastDate, raw.player.totalXp ?? 0), ...raw.track },
     version: STATE_VERSION,
   } as GameState;
 }
@@ -305,7 +308,7 @@ export function log(s: GameState, text: string, tone: Tone = 'info') {
   if (s.logs.length > MAX_LOGS) s.logs.length = MAX_LOGS;
 }
 
-function emit(ev: GameEvent[], tone: Tone, title: string, lines: string[], minor = false) {
+export function emit(ev: GameEvent[], tone: Tone, title: string, lines: string[], minor = false) {
   ev.push({ tone, title, lines, minor } as GameEvent);
 }
 
@@ -371,7 +374,7 @@ export function grantXp(s: GameState, ev: GameEvent[], amount: number, source: S
   return xp;
 }
 
-function damageBoss(s: GameState, ev: GameEvent[], dmg: number) {
+export function damageBoss(s: GameState, ev: GameEvent[], dmg: number) {
   const b = s.boss;
   if (b.defeated || b.weekId !== weekId(todayKey())) return;
   b.hp = Math.max(0, b.hp - dmg);

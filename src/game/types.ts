@@ -395,6 +395,109 @@ export interface GameState {
   reviews: WeeklyReview[];
   activity: Record<string, DayActivity>;
   fun: FunState;
+
+  // v3
+  track: TrackState;
+}
+
+/* ---------------- v3: life trackers ---------------- */
+
+export type FoodTag = 'protein' | 'veg' | 'fruit' | 'grain' | 'homemade' | 'junk' | 'sugary' | 'fried';
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export interface MealLog {
+  id: string;
+  ts: number;
+  date: string;
+  slot: MealSlot;
+  tags: FoodTag[];
+  note?: string;
+  /** filled in by the AI photo scan */
+  ai?: boolean;
+}
+
+export type MoneyCat = 'food' | 'transport' | 'shopping' | 'fun' | 'bills' | 'health' | 'study' | 'other';
+
+export interface Expense {
+  id: string;
+  ts: number;
+  date: string;
+  amount: number;
+  cat: MoneyCat;
+  note?: string;
+  /** needs (bills, groceries, transport) vs wants */
+  essential: boolean;
+}
+
+export interface WishItem {
+  id: string;
+  name: string;
+  price: number;
+  addedAt: number;
+  status: 'waiting' | 'bought' | 'skipped';
+  decidedAt?: number;
+}
+
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  target: number;
+  saved: number;
+  deadline?: string;
+  createdAt: number;
+  /** quarter milestones already rewarded (1..4) */
+  marks: number;
+  doneAt?: number;
+}
+
+export interface SkillTrack {
+  id: string;
+  name: string;
+  icon: string;
+  stat: StatKey;
+  minutes: number;
+  log: { date: string; min: number }[];
+  createdAt: number;
+}
+
+export interface Person {
+  id: string;
+  name: string;
+  relation: 'family' | 'friend' | 'partner' | 'mentor' | 'other';
+  everyDays: number;
+  lastContact?: string;
+  createdAt: number;
+}
+
+export interface DayPlan {
+  date: string;
+  items: { text: string; done: boolean }[];
+  bonus?: boolean;
+}
+
+export interface SeasonState {
+  n: number;
+  startDate: string;
+  xpStart: number;
+  claimed: number[];
+}
+
+export interface TrackState {
+  meals: MealLog[];
+  water: Record<string, number>;
+  waterGoal: number;
+  expenses: Expense[];
+  budgets: Partial<Record<MoneyCat, number>>;
+  wishlist: WishItem[];
+  goals: SavingsGoal[];
+  noSpend: Record<string, boolean>;
+  savedByWaiting: number;
+  skills: SkillTrack[];
+  people: Person[];
+  plans: Record<string, DayPlan>;
+  season: SeasonState;
+  /** per-day caps for small tracking rewards */
+  rewardDay: { date: string; meals: number; spends: number };
 }
 
 export interface GameEvent {

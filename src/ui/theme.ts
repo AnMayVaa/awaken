@@ -21,6 +21,7 @@ export const C = {
   green: '#45F0A0',
   purple: '#B58CFF',
   orange: '#FF8A3D',
+  pink: '#FF7EB6',
   hp: '#FF4D6D',
   xp: '#3CC8FF',
   white: '#FFFFFF',

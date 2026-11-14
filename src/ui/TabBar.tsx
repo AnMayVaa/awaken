@@ -7,6 +7,7 @@ import { tap } from '@/lib/haptics';
 import { useGame } from '@/store/game';
 
 import { Icon, Txt } from './kit';
+import { QuickLogButton } from './QuickLog';
 import { useLayout } from './Screen';
 import { C, F, glow, withAlpha } from './theme';
 
@@ -76,6 +77,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
           <Txt style={{ fontFamily: F.displayBlack, fontSize: 22, letterSpacing: 6, color: C.white, textShadowColor: C.cyan, textShadowRadius: 14 }}>AWAKEN</Txt>
           <Txt v="label" color={C.cyan} style={{ marginTop: 4, fontSize: 9 }}>The System</Txt>
         </View>
+        <QuickLogButton wide />
         {items}
       </View>
     );
@@ -85,7 +87,11 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       <LinearGradient colors={['rgba(6,18,40,0.98)', 'rgba(2,5,12,0.99)']} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={['transparent', withAlpha(C.cyan, 0.7), 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.topLine} />
-      <View style={styles.row}>{items}</View>
+      <View style={styles.row}>
+        {items.slice(0, 2)}
+        <QuickLogButton />
+        {items.slice(2)}
+      </View>
     </View>
   );
 }

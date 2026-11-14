@@ -8,6 +8,7 @@ import { addDays } from '@/game/date';
 import { latestWheel, successRate } from '@/game/director';
 import type { AIQuestInput } from '@/game/engine';
 import { RECOVERY_MAP } from '@/game/recovery';
+import { budgetRows, foodCounts, moneyScore, noSpendStreak, nutritionScore, peopleDue } from '@/game/tracking';
 import type { GameState } from '@/game/types';
 
 import { cloudEnabled, supabase } from './supabase';
@@ -42,6 +43,13 @@ export function buildAIContext(g: GameState, wish?: string) {
     onBoard: g.board.quests.map((q) => q.title),
     mainQuests: g.mainQuests.filter((m) => m.status === 'active').map((m) => m.title).slice(0, 5),
     recovery: g.profile.aiShareRecovery ? g.recovery.map((r) => RECOVERY_MAP[r.category].name) : [],
+    fuel: (() => {
+      const f = foodCounts(g, addDays(t, -1));
+      return { score7d: nutritionScore(g, t), yesterdayMeals: f.meals, yesterdayVegFruit: f.plants, yesterdayFastFood: f.junk, yesterdayWater: g.track.water[addDays(t, -1)] ?? null };
+    })(),
+    money: { score: moneyScore(g, t), overBudget: budgetRows(g, t).filter((r) => r.pct > 1).map((r) => r.cat), noSpendStreak: noSpendStreak(g, t) },
+    skills: g.track.skills.map((k) => k.name).slice(0, 5),
+    peopleDue: peopleDue(g, t).length,
     wish: wish?.trim().slice(0, 300) || null,
   };
 }
